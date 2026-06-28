@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import uuid
 
+from sqlalchemy.exc import IntegrityError
+
 from app.db.models.item import ItemModel
 from app.exceptions import ConflictError, NotFoundError
 from app.repositories.item import ItemRepository
@@ -30,10 +32,16 @@ class ItemService:
         return items, total
 
     async def create(self, payload: ItemCreate) -> ItemModel:
-        # Example business rule: names must be unique.
+        # Friendly pre-check, but the DB unique constraint is the real guard:
+        # two concurrent replicas can both pass the check, so catch the race.
         if await self.repository.get_by_name(payload.name) is not None:
             raise ConflictError(f"An item named {payload.name!r} already exists")
-        return await self.repository.create(name=payload.name, description=payload.description)
+        try:
+            return await self.repository.create(
+                name=payload.name, description=payload.description
+            )
+        except IntegrityError as exc:
+            raise ConflictError(f"An item named {payload.name!r} already exists") from exc
 
     async def update(self, item_id: uuid.UUID, payload: ItemUpdate) -> ItemModel:
         item = await self.get(item_id)

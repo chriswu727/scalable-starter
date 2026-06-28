@@ -84,6 +84,10 @@ test: ## Run all tests
 	pnpm test
 	cd apps/api && . .venv/bin/activate && pytest
 
+.PHONY: cov
+cov: ## API test coverage report (CI enforces --cov-fail-under=70)
+	cd apps/api && . .venv/bin/activate && pytest --cov=app --cov-report=term-missing
+
 .PHONY: check
 check: lint typecheck test ## Run the full quality gate (what CI runs)
 

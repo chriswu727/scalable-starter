@@ -15,5 +15,5 @@ from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 class ItemModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "items"
 
-    name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False, unique=True, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

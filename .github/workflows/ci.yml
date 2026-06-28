@@ -74,7 +74,7 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy app
-      - run: pytest --maxfail=1
+      - run: pytest --maxfail=1 --cov=app --cov-fail-under=70
       # The example tests run on SQLite for speed; this exercises the real
       # migrations against Postgres and proves models and migrations agree.
       - name: Migrations apply, round-trip, and match models (Postgres)

@@ -33,6 +33,8 @@ colorama==0.4.6 ; sys_platform == 'win32'
     #   click
     #   pytest
     #   uvicorn
+coverage==7.14.3
+    # via pytest-cov
 fakeredis==2.36.2
     # via app (pyproject.toml)
 fastapi==0.138.1
@@ -139,7 +141,9 @@ packaging==26.2
 pathspec==1.1.1
     # via mypy
 pluggy==1.6.0
-    # via pytest
+    # via
+    #   pytest
+    #   pytest-cov
 prometheus-client==0.25.0
     # via app (pyproject.toml)
 protobuf==7.35.1
@@ -163,7 +167,10 @@ pytest==9.1.1
     # via
     #   app (pyproject.toml)
     #   pytest-asyncio
+    #   pytest-cov
 pytest-asyncio==1.4.0
+    # via app (pyproject.toml)
+pytest-cov==7.1.0
     # via app (pyproject.toml)
 python-dotenv==1.2.2
     # via

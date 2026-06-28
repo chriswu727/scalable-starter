@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from httpx import AsyncClient
 
 
@@ -80,6 +82,23 @@ async def test_patch_leaves_omitted_fields_untouched(client: AsyncClient) -> Non
     body = resp.json()
     assert body["name"] == "keepname"  # omitted field is not touched
     assert body["description"] == "changed"
+
+
+async def test_update_missing_returns_404(client: AsyncClient) -> None:
+    resp = await client.patch(f"/api/v1/items/{uuid.uuid4()}", json={"description": "x"})
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "not_found"
+
+
+async def test_delete_missing_returns_404(client: AsyncClient) -> None:
+    resp = await client.delete(f"/api/v1/items/{uuid.uuid4()}")
+    assert resp.status_code == 404
+
+
+async def test_pagination_bounds_are_validated(client: AsyncClient) -> None:
+    assert (await client.get("/api/v1/items?limit=0")).status_code == 422
+    assert (await client.get("/api/v1/items?limit=101")).status_code == 422
+    assert (await client.get("/api/v1/items?offset=-1")).status_code == 422
 
 
 async def test_rate_limit_returns_429_with_retry_after(client: AsyncClient) -> None:
