@@ -8,10 +8,10 @@ and is fully type-checked everywhere it is used.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import Field, PostgresDsn, RedisDsn, computed_field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, PostgresDsn, RedisDsn, computed_field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 Environment = Literal["development", "staging", "production"]
 
@@ -38,7 +38,12 @@ class Settings(BaseSettings):
     # ---- HTTP server ----
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    # NoDecode disables pydantic-settings' implicit JSON-decode of the raw env
+    # value, which would otherwise raise SettingsError on a plain comma-separated
+    # string (e.g. CORS_ORIGINS=http://localhost:3000) before any validator runs.
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:3000"]
+    )
 
     # ---- Security ----
     secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
@@ -50,8 +55,8 @@ class Settings(BaseSettings):
     log_format: Literal["console", "json"] = "console"
 
     # ---- Database ----
-    database_url: PostgresDsn = Field(
-        default="postgresql+asyncpg://app:app@localhost:5432/app",  # type: ignore[arg-type]
+    database_url: PostgresDsn = Field(  # type: ignore[assignment]
+        default="postgresql+asyncpg://app:app@localhost:5432/app",
     )
     # Optional separate DSN for read replicas; falls back to the primary.
     database_read_url: PostgresDsn | None = None
@@ -60,7 +65,7 @@ class Settings(BaseSettings):
     db_echo: bool = False
 
     # ---- Cache / broker ----
-    redis_url: RedisDsn = Field(default="redis://localhost:6379/0")  # type: ignore[arg-type]
+    redis_url: RedisDsn = Field(default="redis://localhost:6379/0")  # type: ignore[assignment]
 
     # ---- Observability ----
     otel_exporter_otlp_endpoint: str | None = None
@@ -84,11 +89,13 @@ class Settings(BaseSettings):
     def sqlalchemy_read_dsn(self) -> str:
         return str(self.database_read_url or self.database_url)
 
-    def cors_origins_list(self) -> list[str]:
-        # Allow comma-separated string from the environment as well as a list.
-        if len(self.cors_origins) == 1 and "," in self.cors_origins[0]:
-            return [o.strip() for o in self.cors_origins[0].split(",") if o.strip()]
-        return self.cors_origins
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _split_cors_origins(cls, value: object) -> object:
+        # Accept a comma-separated string from the environment as well as a list.
+        if isinstance(value, str):
+            return [o.strip() for o in value.split(",") if o.strip()]
+        return value
 
 
 @lru_cache

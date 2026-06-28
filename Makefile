@@ -16,9 +16,16 @@ help: ## Show this help
 .PHONY: setup
 setup: ## Install all dependencies (JS + Python) and copy env
 	@test -f .env || cp .env.example .env
-	corepack enable && pnpm install
-	cd apps/api && python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
-	@echo "✔ Setup complete. Run 'make up' to start the stack."
+	corepack enable && pnpm install --frozen-lockfile
+	cd apps/api && python -m venv .venv && . .venv/bin/activate \
+		&& pip install -r requirements-dev.txt && pip install --no-deps -e .
+	@echo "Setup complete. Run 'make up' to start the stack."
+
+.PHONY: lock
+lock: ## Regenerate dependency lockfiles (pnpm + Python) after changing manifests
+	pnpm install --lockfile-only
+	cd apps/api && uv pip compile pyproject.toml --universal -o requirements.txt
+	cd apps/api && uv pip compile pyproject.toml --universal --all-extras -o requirements-dev.txt
 
 # ---------- Local stack (Docker) ----------
 .PHONY: up

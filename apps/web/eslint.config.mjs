@@ -1,12 +1,10 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { FlatCompat } from '@eslint/eslintrc';
 import base from '@repo/eslint-config';
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
+import nextTypescript from 'eslint-config-next/typescript';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const compat = new FlatCompat({ baseDirectory: __dirname });
-
-const eslintConfig = [...base, ...compat.extends('next/core-web-vitals', 'next/typescript')];
+// Next 16 ships native flat configs, so we spread them directly. (The older
+// FlatCompat.extends('next/...') bridge crashes with a circular-reference error
+// against eslint 9 + eslint-config-next 16.)
+const eslintConfig = [...base, ...nextCoreWebVitals, ...nextTypescript];
 
 export default eslintConfig;

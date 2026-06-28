@@ -14,19 +14,23 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
 
-# ---- builder: install runtime dependencies into an isolated venv ----
+# ---- builder: install pinned runtime dependencies into an isolated venv ----
 FROM base AS builder
 RUN python -m venv /opt/venv
-COPY apps/api/pyproject.toml apps/api/README.md /app/
+COPY apps/api/pyproject.toml apps/api/README.md apps/api/requirements.txt /app/
 COPY apps/api/app /app/app
-RUN pip install --upgrade pip && pip install .
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt \
+    && pip install --no-deps .
 
 # ---- dev: editable install + dev tools + hot reload ----
 FROM base AS dev
 RUN python -m venv /opt/venv
-COPY apps/api/pyproject.toml apps/api/README.md /app/
+COPY apps/api/pyproject.toml apps/api/README.md apps/api/requirements-dev.txt /app/
 COPY apps/api/app /app/app
-RUN pip install --upgrade pip && pip install -e ".[dev]"
+RUN pip install --upgrade pip \
+    && pip install -r requirements-dev.txt \
+    && pip install --no-deps -e .
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 

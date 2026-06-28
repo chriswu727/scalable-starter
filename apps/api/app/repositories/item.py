@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,4 +19,4 @@ class ItemRepository(BaseRepository[ItemModel]):
 
     async def get_by_name(self, name: str) -> ItemModel | None:
         stmt = select(ItemModel).where(ItemModel.name == name)
-        return await self.session.scalar(stmt)
+        return cast("ItemModel | None", await self.session.scalar(stmt))
