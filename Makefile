@@ -68,6 +68,19 @@ migrate: ## Apply all database migrations
 migration: ## Create a new migration: make migration m="add users"
 	cd apps/api && . .venv/bin/activate && alembic revision --autogenerate -m "$(m)"
 
+# ---------- Scaffolding ----------
+.PHONY: feature
+feature: ## Scaffold a new resource from the items template: make feature name=project
+	python3 scripts/scaffold_feature.py $(name)
+
+.PHONY: seed
+seed: ## Insert example rows into the database (idempotent; needs a running DB)
+	cd apps/api && . .venv/bin/activate && python scripts/seed.py
+
+.PHONY: delete-example
+delete-example: ## Print the checklist for removing the example `items` resource
+	python3 scripts/delete_example.py
+
 # ---------- Quality gates ----------
 .PHONY: lint
 lint: ## Lint everything (JS + Python)
