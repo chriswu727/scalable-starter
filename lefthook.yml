@@ -1,0 +1,17 @@
+# Pre-commit hooks — run the same lint/format gates as CI on staged files, so
+# you fix issues before a CI round-trip. Activated by `make setup`
+# (lefthook install). Bypass once with `git commit --no-verify`.
+pre-commit:
+  parallel: true
+  commands:
+    python:
+      root: 'apps/api/'
+      glob: '*.py'
+      run: .venv/bin/ruff check --fix {staged_files} && .venv/bin/ruff format {staged_files}
+      stage_fixed: true
+    frontend:
+      glob: '*.{ts,tsx,js,jsx,json,md,yaml,yml}'
+      exclude:
+        - 'packages/api-contract/src/generated.ts'
+      run: pnpm prettier --write {staged_files}
+      stage_fixed: true

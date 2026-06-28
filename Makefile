@@ -19,6 +19,7 @@ setup: ## Install all dependencies (JS + Python) and copy env
 	corepack enable && pnpm install --frozen-lockfile
 	cd apps/api && python -m venv .venv && . .venv/bin/activate \
 		&& pip install -r requirements-dev.txt && pip install --no-deps -e .
+	pnpm exec lefthook install
 	@echo "Setup complete. Run 'make up' to start the stack."
 
 .PHONY: contract
