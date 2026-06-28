@@ -5,7 +5,7 @@
 
 ## Context
 
-We want the *reasons* behind significant choices to survive turnover and time,
+We want the _reasons_ behind significant choices to survive turnover and time,
 so future contributors can change things deliberately rather than fearfully.
 
 ## Decision

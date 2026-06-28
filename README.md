@@ -5,7 +5,7 @@
 **A production-grade, platform-agnostic full-stack skeleton.**
 Next.js + FastAPI · built to scale on Kubernetes · **zero business logic**.
 
-Fork it, delete the example feature, and ship *your* product on day one
+Fork it, delete the example feature, and ship _your_ product on day one
 instead of spending the first month wiring config, logging, auth scaffolding,
 migrations, containers, CI, and Kubernetes manifests.
 
@@ -58,19 +58,19 @@ If you are a startup or a "vibe coder," the goal is simple: **`git clone`,
 
 ## What's in the box
 
-| Layer            | Choice                              | Why |
-|------------------|-------------------------------------|-----|
-| Frontend         | **Next.js 16 (App Router) + React 19 + TS** | SSR/RSC, huge ecosystem, the default for fast product work |
-| Backend          | **FastAPI + Python 3.13**           | Async, type-driven, auto OpenAPI, gentle learning curve |
-| Validation/DTOs  | **Pydantic v2**                     | Fast, strict, the FastAPI-native contract layer |
-| Data access      | **SQLAlchemy 2.0 (async) + Alembic**| Mature ORM + first-class migrations |
-| Database         | **PostgreSQL**                      | The dependable default for 99% of products |
-| Cache / broker   | **Redis**                           | Cache, rate-limit store, lightweight queue |
-| Monorepo         | **pnpm workspaces + Turborepo**     | One repo, fast cached builds, shared types |
-| Containers       | **Multi-stage Docker (non-root)**   | Small, reproducible, secure images |
-| Orchestration    | **Kubernetes + Kustomize**          | Cloud-agnostic, base + per-env overlays, HPA autoscaling |
-| Observability    | **OpenTelemetry + Prometheus + structured logs** | Traces, metrics, logs correlated by request ID |
-| CI/CD            | **GitHub Actions**                  | Lint, typecheck, test, build, image — mirrors `make check` |
+| Layer           | Choice                                           | Why                                                        |
+| --------------- | ------------------------------------------------ | ---------------------------------------------------------- |
+| Frontend        | **Next.js 16 (App Router) + React 19 + TS**      | SSR/RSC, huge ecosystem, the default for fast product work |
+| Backend         | **FastAPI + Python 3.13**                        | Async, type-driven, auto OpenAPI, gentle learning curve    |
+| Validation/DTOs | **Pydantic v2**                                  | Fast, strict, the FastAPI-native contract layer            |
+| Data access     | **SQLAlchemy 2.0 (async) + Alembic**             | Mature ORM + first-class migrations                        |
+| Database        | **PostgreSQL**                                   | The dependable default for 99% of products                 |
+| Cache / broker  | **Redis**                                        | Cache, rate-limit store, lightweight queue                 |
+| Monorepo        | **pnpm workspaces + Turborepo**                  | One repo, fast cached builds, shared types                 |
+| Containers      | **Multi-stage Docker (non-root)**                | Small, reproducible, secure images                         |
+| Orchestration   | **Kubernetes + Kustomize**                       | Cloud-agnostic, base + per-env overlays, HPA autoscaling   |
+| Observability   | **OpenTelemetry + Prometheus + structured logs** | Traces, metrics, logs correlated by request ID             |
+| CI/CD           | **GitHub Actions**                               | Lint, typecheck, test, build, image — mirrors `make check` |
 
 See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full design rationale and
 [`docs/adr/`](./docs/adr) for the decision records behind each choice.

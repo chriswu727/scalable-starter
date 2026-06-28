@@ -66,6 +66,7 @@ migration: ## Create a new migration: make migration m="add users"
 .PHONY: lint
 lint: ## Lint everything (JS + Python)
 	pnpm lint
+	pnpm format:check
 	cd apps/api && . .venv/bin/activate && ruff check . && ruff format --check .
 
 .PHONY: format

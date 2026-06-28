@@ -50,7 +50,10 @@ export default async function Home() {
       </div>
 
       <div className="mt-10 flex flex-wrap gap-3 text-sm">
-        <a href="/api/health" className="rounded-md border border-current px-4 py-2 hover:opacity-80">
+        <a
+          href="/api/health"
+          className="rounded-md border border-current px-4 py-2 hover:opacity-80"
+        >
           web /health
         </a>
         <a

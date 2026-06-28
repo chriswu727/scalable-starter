@@ -27,11 +27,11 @@ make dev       # web + api in watch mode
 
 ## Common tasks
 
-| Task | Command |
-|------|---------|
-| All quality checks (CI parity) | `make check` |
-| Format everything | `make format` |
-| New migration | `make migration m="describe change"` |
-| Apply migrations | `make migrate` |
-| Backend tests only | `cd apps/api && pytest` |
-| See all commands | `make help` |
+| Task                           | Command                              |
+| ------------------------------ | ------------------------------------ |
+| All quality checks (CI parity) | `make check`                         |
+| Format everything              | `make format`                        |
+| New migration                  | `make migration m="describe change"` |
+| Apply migrations               | `make migrate`                       |
+| Backend tests only             | `cd apps/api && pytest`              |
+| See all commands               | `make help`                          |

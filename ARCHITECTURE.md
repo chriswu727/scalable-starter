@@ -1,6 +1,6 @@
 # Architecture
 
-This document explains *how* the skeleton is put together and *why*. If the
+This document explains _how_ the skeleton is put together and _why_. If the
 README is the sales pitch, this is the engineering rationale. Read it once
 before you start changing things — the conventions here are what keep the
 codebase scalable as it grows.
@@ -24,7 +24,7 @@ codebase scalable as it grows.
 ## Design principles
 
 1. **Boring on purpose.** Every choice favours the well-trodden path. Novelty
-   is reserved for *your* product, not the plumbing.
+   is reserved for _your_ product, not the plumbing.
 2. **Stateless compute, stateful edges.** Application processes hold no durable
    state. All state lives in Postgres/Redis. This is the single most important
    property for horizontal scaling.
@@ -74,14 +74,14 @@ is managed deliberately.
 The backend is a layered / hexagonal design. Each layer has one job and may only
 call the layer directly beneath it.
 
-| Layer | Directory | Responsibility | May import |
-|-------|-----------|----------------|-----------|
-| **Transport** | `app/api/` | HTTP routing, request/response, auth deps, status codes | services, schemas |
-| **Service** | `app/services/` | Use-cases, orchestration, business rules, transactions | repositories, domain |
-| **Repository** | `app/repositories/` | Data access; hides SQL/Redis behind an interface | domain, db |
-| **Domain** | `app/domain/` | Pure entities and value objects, no framework | nothing |
-| **Schema** | `app/schemas/` | Pydantic DTOs — the wire contract | domain (for mapping) |
-| **Core** | `app/core/` | Config, logging, security primitives, lifespan | nothing app-specific |
+| Layer          | Directory           | Responsibility                                          | May import           |
+| -------------- | ------------------- | ------------------------------------------------------- | -------------------- |
+| **Transport**  | `app/api/`          | HTTP routing, request/response, auth deps, status codes | services, schemas    |
+| **Service**    | `app/services/`     | Use-cases, orchestration, business rules, transactions  | repositories, domain |
+| **Repository** | `app/repositories/` | Data access; hides SQL/Redis behind an interface        | domain, db           |
+| **Domain**     | `app/domain/`       | Pure entities and value objects, no framework           | nothing              |
+| **Schema**     | `app/schemas/`      | Pydantic DTOs — the wire contract                       | domain (for mapping) |
+| **Core**       | `app/core/`         | Config, logging, security primitives, lifespan          | nothing app-specific |
 
 **The dependency rule:** an arrow may only point downward. A router must never
 touch the database directly; a repository must never import FastAPI. If you find
@@ -201,8 +201,8 @@ The three pillars are wired and correlated:
 - **Metrics** — a Prometheus `/metrics` endpoint exposes request rate, latency
   histograms, and error counts (the RED method). Dashboards scrape it.
 
-Health endpoints distinguish *liveness* (`/healthz` — is the process up?) from
-*readiness* (`/readyz` — can it serve, i.e. is the DB reachable?). Kubernetes
+Health endpoints distinguish _liveness_ (`/healthz` — is the process up?) from
+_readiness_ (`/readyz` — can it serve, i.e. is the DB reachable?). Kubernetes
 uses them to avoid routing traffic to a pod that isn't ready.
 
 ---

@@ -17,7 +17,7 @@ services:
       NEXT_PUBLIC_API_URL: http://localhost:8000
       API_INTERNAL_URL: http://api:8000
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       - ./apps/web:/app/apps/web
       - ./packages:/app/packages
@@ -39,7 +39,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       LOG_FORMAT: console
     ports:
-      - "8000:8000"
+      - '8000:8000'
     volumes:
       - ./apps/api:/app
     depends_on:
@@ -50,7 +50,13 @@ services:
       migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)",
+        ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -67,13 +73,13 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://app:app@postgres:5432/app
-    command: ["alembic", "upgrade", "head"]
+    command: ['alembic', 'upgrade', 'head']
     volumes:
       - ./apps/api:/app
     depends_on:
       postgres:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
 
   postgres:
     image: postgres:17-alpine
@@ -82,11 +88,11 @@ services:
       POSTGRES_PASSWORD: app
       POSTGRES_DB: app
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      test: ['CMD-SHELL', 'pg_isready -U app -d app']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -94,13 +100,13 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10

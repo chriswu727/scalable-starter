@@ -3,9 +3,9 @@
 Multi-stage, production-shaped images. Both build from the **repo root** as
 context so they can see the whole monorepo.
 
-| Image | Dockerfile | Targets |
-|-------|------------|---------|
-| API   | `api.Dockerfile` | `dev` (reload), `runtime` (non-root) |
+| Image | Dockerfile       | Targets                                         |
+| ----- | ---------------- | ----------------------------------------------- |
+| API   | `api.Dockerfile` | `dev` (reload), `runtime` (non-root)            |
 | Web   | `web.Dockerfile` | `dev` (reload), `runner` (standalone, non-root) |
 
 ```bash

@@ -9,6 +9,7 @@ resource. Use the existing `items` files as a copy-paste template.
 ## Backend (one file per layer)
 
 1. **Domain** — `apps/api/app/domain/project.py`
+
    ```python
    from dataclasses import dataclass
    @dataclass(slots=True)
@@ -25,6 +26,7 @@ resource. Use the existing `items` files as a copy-paste template.
    `ProjectUpdate`, `ProjectRead`.
 
 4. **Repository** — `apps/api/app/repositories/project.py`
+
    ```python
    class ProjectRepository(BaseRepository[ProjectModel]):
        model = ProjectModel
@@ -39,6 +41,7 @@ resource. Use the existing `items` files as a copy-paste template.
 7. **Register** the router in `apps/api/app/api/v1/router.py`.
 
 8. **Migrate**:
+
    ```bash
    make migration m="add projects"
    make migrate

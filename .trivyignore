@@ -1,0 +1,5 @@
+# Trivy ignore file — accept specific, reviewed CVE IDs that the image scan
+# (.github/workflows/docker.yml) would otherwise block on.
+#
+# Use sparingly and document why. Example:
+#   CVE-2024-12345  # unfixable in base image; not reachable by our code
