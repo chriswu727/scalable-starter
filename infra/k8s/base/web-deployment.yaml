@@ -25,6 +25,9 @@ spec:
       serviceAccountName: app
       securityContext:
         runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
         seccompProfile:
           type: RuntimeDefault
       topologySpreadConstraints:
@@ -63,8 +66,25 @@ spec:
             httpGet: { path: /api/health, port: http }
             periodSeconds: 10
             timeoutSeconds: 2
+          # Brief drain so the pod leaves Service endpoints before it stops
+          # accepting, avoiding 5xx during rolling deploys / node drains.
+          lifecycle:
+            preStop:
+              exec:
+                command: ['sh', '-c', 'sleep 5']
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ['ALL']
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/apps/web/.next/cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: next-cache
+          emptyDir: {}
       terminationGracePeriodSeconds: 30

@@ -86,3 +86,19 @@ jobs:
           alembic check
           alembic downgrade base
           alembic upgrade head
+
+  k8s:
+    name: k8s (kustomize · kubeconform)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Validate every overlay against the Kubernetes schemas
+        env:
+          KUBECONFORM_VERSION: '0.8.0'
+        run: |
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz kubeconform
+          for o in dev staging prod; do
+            echo "== overlay: $o =="
+            kubectl kustomize "infra/k8s/overlays/$o" | ./kubeconform -strict -summary
+          done

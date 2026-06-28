@@ -1,0 +1,11 @@
+# Production hostname + cert-manager TLS. Requires cert-manager and a
+# ClusterIssuer named "letsencrypt-prod" (see infra/k8s/cluster-issuer.example.yaml).
+- op: replace
+  path: /spec/rules/0/host
+  value: app.example.com
+- op: replace
+  path: /spec/tls/0/hosts/0
+  value: app.example.com
+- op: add
+  path: /metadata/annotations/cert-manager.io~1cluster-issuer
+  value: letsencrypt-prod

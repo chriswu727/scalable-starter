@@ -25,5 +25,9 @@ images:
 
 patches:
   - path: patch-config.yaml
+  - path: patch-ingress.yaml
+    target:
+      kind: Ingress
+      name: app
   - path: patch-hpa-api.yaml
   - path: patch-resources-api.yaml

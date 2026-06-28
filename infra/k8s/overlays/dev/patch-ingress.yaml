@@ -1,0 +1,8 @@
+# Per-env hostname for the shared base Ingress (kept in sync with CORS_ORIGINS /
+# NEXT_PUBLIC_API_URL in patch-config.yaml).
+- op: replace
+  path: /spec/rules/0/host
+  value: app.dev.example.com
+- op: replace
+  path: /spec/tls/0/hosts/0
+  value: app.dev.example.com

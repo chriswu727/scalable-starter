@@ -4,6 +4,8 @@ kind: Kustomization
 namespace: scalable-starter-dev
 resources:
   - ../../base
+  - datastore.yaml # dev-only in-cluster Postgres + Redis
+  - secret.yaml # dev-only throwaway app-secrets
 
 # Initial replica counts (the HPA takes over once metrics are available).
 replicas:
@@ -24,5 +26,9 @@ images:
 
 patches:
   - path: patch-config.yaml
+  - path: patch-ingress.yaml
+    target:
+      kind: Ingress
+      name: app
   - path: patch-hpa-api.yaml
   - path: patch-hpa-web.yaml

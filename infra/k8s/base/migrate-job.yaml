@@ -1,22 +1,24 @@
-apiVersion: apps/v1
-kind: Deployment
+# Runs database migrations as part of a deploy. With raw kustomize this applies
+# on `kubectl apply -k`; for Helm/Argo CD, convert it to a pre-install /
+# PreSync hook so it runs before the new app pods roll out. backoffLimit lets it
+# retry until the database is reachable (e.g. while the dev datastore starts).
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: worker
+  name: migrate
   labels:
-    app.kubernetes.io/name: worker
-    app.kubernetes.io/component: worker
+    app.kubernetes.io/name: migrate
+    app.kubernetes.io/component: migration
 spec:
-  replicas: 1
-  revisionHistoryLimit: 5
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: worker
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 600
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: worker
-        app.kubernetes.io/component: worker
+        app.kubernetes.io/name: migrate
+        app.kubernetes.io/component: migration
     spec:
+      restartPolicy: Never
       serviceAccountName: app
       securityContext:
         runAsNonRoot: true
@@ -26,10 +28,9 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: worker
+        - name: migrate
           image: app-api:latest
-          imagePullPolicy: IfNotPresent
-          command: ['python', '-m', 'app.workers.worker']
+          command: ['alembic', 'upgrade', 'head']
           envFrom:
             - configMapRef:
                 name: app-config
@@ -37,11 +38,11 @@ spec:
                 name: app-secrets
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
+              cpu: 50m
+              memory: 128Mi
             limits:
               cpu: '1'
-              memory: 512Mi
+              memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -53,5 +54,3 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-      # Allow in-flight jobs to finish on rolling deploys.
-      terminationGracePeriodSeconds: 60

@@ -151,7 +151,60 @@ Validated locally: `actionlint` clean on all four workflows, `make check` green
 (incl. format:check), `docker compose config` valid, all three Kustomize
 overlays still build, and `gitleaks git .` runs clean against the repo.
 
-Remaining phases (4–7) below are not yet started.
+**Phase 4 — Portability: make `kubectl apply -k` actually work: DONE** (every
+overlay renders and passes `kubeconform -strict`; a real cluster apply is not
+verifiable here — no Docker/cluster in the authoring env — so pod-level startup
+is unproven, but the manifests are schema-valid and coherently wired).
+
+- **`overlays/dev` is now a complete, self-contained stack**: a dev-only
+  in-cluster Postgres + Redis StatefulSet (`datastore.yaml`) and a throwaway
+  `app-secrets` Secret, so `kubectl apply -k overlays/dev` comes up on kind/k3s
+  with nothing external. staging/prod are explicitly **bring-your-own**
+  datastore.
+- **No Secret in `base/`** anymore (a committed placeholder would render into
+  prod). dev ships a throwaway one; an `external-secret.example.yaml` template
+  shows the External Secrets Operator path for staging/prod. Verified the prod
+  render contains **no Secret**.
+- **Kubernetes migration Job** (`base/migrate-job.yaml`) runs `alembic upgrade
+head` (with `backoffLimit` to wait for the DB); the overlay image transform
+  reaches it.
+- **Ingress host is per-overlay** (JSON6902 patches) instead of a hardcoded
+  `app.example.com`; staging/prod add a `cert-manager.io/cluster-issuer`
+  annotation, with a `cluster-issuer.example.yaml` template. Documented how to
+  override `ingressClassName` for ALB/GKE.
+- **NetworkPolicy fixes**: the default-deny no longer blackholes the new
+  datastore (app→datastore allow) or Prometheus (a `monitoring` namespace can
+  scrape `/metrics`).
+- **web Deployment hardened to api/worker parity**: `readOnlyRootFilesystem`
+  with writable `/tmp` + `.next/cache` emptyDirs; **preStop drain** added to
+  api and web so rolling deploys don't drop requests.
+- **CI gains a `k8s` job**: renders all three overlays and validates them with
+  `kubeconform -strict`, so manifest drift is caught on every push.
+
+(The "one promotable web image" question — build-ARG-per-env vs runtime config —
+is a deliberate design fork still open; Phase 3 added a build-ARG default so the
+image at least builds.)
+
+_Post-review hardening_ (a web-enabled k8s review caught a real blocker that
+schema validation can't):
+
+- **The whole app tier would never start** — `runAsNonRoot: true` with no numeric
+  `runAsUser`, while the images set `USER` by _name_ (`app`/`nextjs`). The
+  kubelet can't verify a non-numeric user is non-root, so api/web/worker/migrate
+  would all hit `CreateContainerConfigError`. (This was latent in the original
+  repo too — the app tier's `kubectl apply -k` never worked.) Fixed: pinned
+  numeric UIDs in both Dockerfiles (`USER 1000` / `USER 1001`) and added
+  `runAsUser`/`runAsGroup`/`fsGroup` to every pod securityContext.
+- Honesty fixes to the README the review flagged: the dev one-liner needs the
+  app images **built + `kind load`ed** first (softened "nothing external" →
+  "no external datastore"); documented the migrate-Job re-apply (`field is
+immutable`) gotcha, the k3s/Traefik + NetworkPolicy caveat, that ALB/GKE
+  aren't a one-line ingress swap, and the default-StorageClass assumption.
+
+Note: a real cluster apply still isn't runtime-verified here (no Docker/cluster
+in the authoring env), so pod startup is reasoned-and-fixed, not observed.
+
+Remaining phases (5–7) below are not yet started.
 
 ---
 

@@ -1,0 +1,10 @@
+# Staging hostname + cert-manager TLS (ClusterIssuer "letsencrypt-staging").
+- op: replace
+  path: /spec/rules/0/host
+  value: app.staging.example.com
+- op: replace
+  path: /spec/tls/0/hosts/0
+  value: app.staging.example.com
+- op: add
+  path: /metadata/annotations/cert-manager.io~1cluster-issuer
+  value: letsencrypt-staging

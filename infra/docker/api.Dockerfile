@@ -36,11 +36,13 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload
 
 # ---- runtime: minimal, non-root, production ----
 FROM base AS runtime
-RUN groupadd --system app && useradd --system --gid app --home /app app
+# Pin a numeric UID and reference USER by number: a non-numeric image user can't
+# be verified against a pod's runAsNonRoot, so Kubernetes rejects the container.
+RUN groupadd --system --gid 1000 app && useradd --system --uid 1000 --gid app --home /app app
 COPY --from=builder /opt/venv /opt/venv
 COPY apps/api /app
 RUN chown -R app:app /app
-USER app
+USER 1000
 EXPOSE 8000
 # One process per pod: horizontal scale = more pods (the cluster scales out), and
 # a single in-process Prometheus registry keeps /metrics counters correct.
