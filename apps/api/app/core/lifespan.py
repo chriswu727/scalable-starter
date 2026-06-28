@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
 from app.db.session import dispose_engine, init_engine
 from app.observability.tracing import setup_tracing
+from app.workers.queue import aclose as close_job_queue
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -40,5 +41,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     finally:
         log.info("shutdown.begin")
         await cache.close()
+        await close_job_queue()
         await dispose_engine()
         log.info("shutdown.complete")
