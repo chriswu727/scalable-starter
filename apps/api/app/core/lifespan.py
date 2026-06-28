@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from app.cache.redis import create_cache
 from app.core.config import settings
+from app.core.http_client import create_http_client
 from app.core.logging import configure_logging, get_logger
 from app.db.session import dispose_engine, init_engine
 from app.observability.tracing import setup_tracing
@@ -34,6 +35,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_engine()
     cache = create_cache()
     app.state.cache = cache
+    http = create_http_client()
+    app.state.http = http
 
     log.info("startup.complete")
     try:
@@ -41,6 +44,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     finally:
         log.info("shutdown.begin")
         await cache.close()
+        await http.aclose()
         await close_job_queue()
         await dispose_engine()
         log.info("shutdown.complete")

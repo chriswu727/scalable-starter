@@ -13,6 +13,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis import Cache
+from app.core.http_client import HttpClient
 from app.core.logging import get_logger
 from app.core.security import decode_access_token
 from app.db.session import get_read_session, get_session
@@ -31,6 +32,13 @@ def get_cache(request: Request) -> Cache:
 
 
 CacheDep = Annotated[Cache, Depends(get_cache)]
+
+
+def get_http(request: Request) -> HttpClient:
+    return cast(HttpClient, request.app.state.http)
+
+
+HttpDep = Annotated[HttpClient, Depends(get_http)]
 
 
 def get_item_service(session: SessionDep) -> ItemService:
