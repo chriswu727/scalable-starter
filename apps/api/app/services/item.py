@@ -37,9 +37,7 @@ class ItemService:
         if await self.repository.get_by_name(payload.name) is not None:
             raise ConflictError(f"An item named {payload.name!r} already exists")
         try:
-            return await self.repository.create(
-                name=payload.name, description=payload.description
-            )
+            return await self.repository.create(name=payload.name, description=payload.description)
         except IntegrityError as exc:
             raise ConflictError(f"An item named {payload.name!r} already exists") from exc
 
