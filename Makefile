@@ -120,6 +120,10 @@ smoke: ## k6 smoke test against BASE_URL (default localhost:8000; requires k6)
 load: ## Heavier k6 load test (50 VUs, 2m)
 	k6 run --vus 50 --duration 2m scripts/k6/smoke.js
 
+.PHONY: e2e
+e2e: ## Playwright e2e against a running stack (make up first; `pnpm exec playwright install` once)
+	pnpm exec playwright test
+
 # ---------- Kubernetes ----------
 .PHONY: k8s-dev
 k8s-dev: ## Render the dev overlay (kustomize) to stdout
