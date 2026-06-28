@@ -28,6 +28,7 @@ resources:
   - web-pdb.yaml
   - worker-deployment.yaml
   - worker-hpa.yaml
+  - worker-pdb.yaml
   - migrate-job.yaml
   - ingress.yaml
   - networkpolicy.yaml

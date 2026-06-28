@@ -16,6 +16,10 @@ spec:
       labels:
         app.kubernetes.io/name: worker
         app.kubernetes.io/component: worker
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9100'
+        prometheus.io/path: '/metrics'
     spec:
       serviceAccountName: app
       securityContext:
@@ -25,11 +29,32 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: worker
       containers:
         - name: worker
           image: app-api:latest
           imagePullPolicy: IfNotPresent
           command: ['python', '-m', 'app.workers.worker']
+          ports:
+            - name: metrics
+              containerPort: 9100
+          # A deadlocked consume loop stops touching the heartbeat file, so this
+          # probe fails and the pod is restarted (a metrics-port check would
+          # stay green because the metrics server runs in its own thread).
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - import os, time, sys; sys.exit(0 if time.time() - os.path.getmtime('/tmp/worker.heartbeat') < 30 else 1)
+            initialDelaySeconds: 15
+            periodSeconds: 10
           envFrom:
             - configMapRef:
                 name: app-config

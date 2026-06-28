@@ -107,6 +107,18 @@ class InMemoryCache:
 
 
 def create_cache() -> Cache:
-    """Factory used at startup. Returns a Redis-backed cache."""
-    client = aioredis.from_url(str(settings.redis_url), decode_responses=True)
+    """Factory used at startup. Returns a Redis-backed cache.
+
+    Bounded timeouts + periodic health checks so a partitioned Redis fails fast
+    instead of wedging the awaiting request. (The worker's *blocking* consumer
+    deliberately uses no socket_timeout so BLMOVE isn't cut off — see workers/.)
+    """
+    client = aioredis.from_url(
+        str(settings.redis_url),
+        decode_responses=True,
+        socket_timeout=5,
+        socket_connect_timeout=5,
+        health_check_interval=30,
+        max_connections=50,
+    )
     return RedisCache(client)

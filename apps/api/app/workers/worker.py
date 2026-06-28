@@ -20,9 +20,11 @@ import json
 import os
 import signal
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Any, cast
 
 import redis.asyncio as aioredis
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 
@@ -36,6 +38,18 @@ JobHandler = Callable[[dict[str, Any]], Awaitable[None]]
 
 # Map job types to async handlers. Register real handlers as you add them.
 HANDLERS: dict[str, JobHandler] = {}
+
+# --- Metrics (scraped on WORKER_METRICS_PORT) + liveness heartbeat ---
+JOBS_PROCESSED = Counter("worker_jobs_processed_total", "Jobs processed", ["type", "status"])
+JOB_DURATION = Histogram("worker_job_duration_seconds", "Handler duration", ["type"])
+QUEUE_DEPTH = Gauge("worker_queue_depth", "Pending jobs in the queue")
+HEARTBEAT_FILE = os.getenv("WORKER_HEARTBEAT_FILE", "/tmp/worker.heartbeat")
+
+
+def _heartbeat() -> None:
+    """Touch the liveness file; a deadlocked loop lets it go stale so K8s restarts us."""
+    with contextlib.suppress(OSError):
+        Path(HEARTBEAT_FILE).touch()
 
 
 def handler(job_type: str) -> Callable[[JobHandler], JobHandler]:
@@ -75,31 +89,38 @@ async def handle_job(client: aioredis.Redis, pkey: str, raw: str) -> None:
         job = json.loads(raw)
     except json.JSONDecodeError:
         log.exception("job.unparseable", raw=raw)
+        JOBS_PROCESSED.labels("unknown", "poison").inc()
         await client.lrem(pkey, 1, raw)  # drop poison message
         return
 
+    job_type = str(job.get("type", "unknown"))
     handler_fn = HANDLERS.get(job.get("type"))
     if handler_fn is None:
-        log.warning("job.unknown_type", type=job.get("type"), id=job.get("id"))
+        log.warning("job.unknown_type", type=job_type, id=job.get("id"))
+        JOBS_PROCESSED.labels(job_type, "unknown").inc()
         await client.lrem(pkey, 1, raw)
         return
 
     try:
-        await handler_fn(job.get("payload", {}))
+        with JOB_DURATION.labels(job_type).time():
+            await handler_fn(job.get("payload", {}))
     except Exception:
         attempts = int(job.get("attempts", 0)) + 1
         job["attempts"] = attempts
         await client.lrem(pkey, 1, raw)
         if attempts >= MAX_ATTEMPTS:
             await client.rpush(DEAD_KEY, json.dumps(job))
+            JOBS_PROCESSED.labels(job_type, "dead").inc()
             log.exception("job.dead_lettered", id=job.get("id"), attempts=attempts)
         else:
             await client.rpush(QUEUE_KEY, json.dumps(job))
+            JOBS_PROCESSED.labels(job_type, "retry").inc()
             log.warning("job.retrying", id=job.get("id"), attempts=attempts)
         return
 
     await client.lrem(pkey, 1, raw)  # ack only after the handler succeeds
-    log.info("job.done", id=job.get("id"), type=job.get("type"))
+    JOBS_PROCESSED.labels(job_type, "ok").inc()
+    log.info("job.done", id=job.get("id"), type=job_type)
 
 
 async def process_next(client: aioredis.Redis, pkey: str, *, block_seconds: int = 5) -> bool:
@@ -113,6 +134,8 @@ async def process_next(client: aioredis.Redis, pkey: str, *, block_seconds: int 
 
 async def _run() -> None:
     configure_logging()
+    if settings.prometheus_enabled:
+        start_http_server(int(os.getenv("WORKER_METRICS_PORT", "9100")))
     client = aioredis.from_url(
         str(settings.redis_url), decode_responses=True, health_check_interval=30
     )
@@ -127,7 +150,9 @@ async def _run() -> None:
     try:
         await recover_orphans(client, pkey)
         while not stop.is_set():
+            _heartbeat()
             try:
+                QUEUE_DEPTH.set(await client.llen(QUEUE_KEY))
                 await process_next(client, pkey, block_seconds=5)
                 backoff = 1
             except (RedisConnectionError, RedisTimeoutError):

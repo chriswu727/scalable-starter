@@ -1,0 +1,11 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: worker
+spec:
+  # Workers don't serve traffic, so allow one to be evicted for node maintenance
+  # (minAvailable:1 would block all drains when scaled to a single replica).
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker

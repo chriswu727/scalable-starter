@@ -1,0 +1,24 @@
+# -----------------------------------------------------------------------------
+# TEMPLATE — not wired into any kustomization. Requires KEDA (https://keda.sh).
+# Scales the worker on Redis queue DEPTH (jobs:default) rather than CPU, which is
+# what you actually want for a queue consumer. Install KEDA, then replace the
+# worker HPA (base/worker-hpa.yaml) with this in an overlay.
+# See: https://keda.sh/docs/scalers/redis-lists/
+# -----------------------------------------------------------------------------
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: worker
+spec:
+  scaleTargetRef:
+    name: worker
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  cooldownPeriod: 120
+  triggers:
+    - type: redis
+      metadata:
+        address: redis:6379 # host:port of your Redis (or use addressFromEnv)
+        listName: jobs:default # the queue key from app/workers/queue.py
+        listLength: '50' # target pending jobs per replica
+        # passwordFromEnv: REDIS_PASSWORD  # if your Redis requires auth
