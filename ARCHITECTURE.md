@@ -45,7 +45,7 @@ codebase scalable as it grows.
 ```mermaid
 flowchart TB
     U["User"] --> CDN["CDN / Static edge"]
-    U --> IG["Ingress (TLS termination, routing, rate limit)"]
+    U --> IG["Ingress (TLS termination, routing)"]
     CDN -. "static assets" .-> U
     IG -->|"/"| WEB["Next.js (web)\nstateless · N replicas"]
     IG -->|"/api/*"| API["FastAPI (api)\nstateless · N replicas"]
@@ -161,16 +161,19 @@ flowchart LR
 
 ## Caching & background work
 
-- **Cache:** a small `Cache` protocol backed by Redis (`get`/`set`/`delete` with
-  TTL). Use it for read-through caching of expensive queries. Because it's an
-  interface, tests use an in-memory implementation.
-- **Background jobs:** the `app/workers/` skeleton shows a producer (the API
-  enqueues a job onto Redis) and a consumer (a separate `worker` process drains
-  the queue). This is intentionally minimal — swap in Celery, Arq, Dramatiq, or
-  a managed queue as your needs grow, keeping the same enqueue/handle seam.
+- **Cache:** a small `Cache` protocol backed by Redis (`get`/`set`/`delete`/`incr`
+  with TTL), plus a `get_or_set` cache-aside helper with single-flight stampede
+  protection. Because it's an interface, tests use an in-memory implementation.
+- **Background jobs:** the `app/workers/` skeleton provides a producer
+  (`enqueue()` — call it from a service) and a consumer (a separate `worker`
+  process). Delivery is **at-least-once**: jobs move to a per-worker processing
+  list, are acked only on success, retry then dead-letter, and the worker
+  recovers in-flight jobs on restart. Swap in Celery/Arq/Dramatiq or a managed
+  queue as you grow, keeping the same enqueue/handle seam.
 - **Why a separate worker tier?** Long or bursty work must not block request
-  threads or share the API's scaling signal. The worker scales on queue depth;
-  the API scales on request latency/CPU.
+  threads or share the API's scaling signal. The worker scales on CPU by default,
+  or on Redis queue depth via the KEDA template
+  (`infra/k8s/keda-scaledobject.example.yaml`); the API scales on CPU/latency.
 
 ---
 
@@ -213,8 +216,9 @@ uses them to avoid routing traffic to a pod that isn't ready.
 Defense in depth, with the hooks in place even though there's no auth logic to
 protect yet:
 
-- **Transport:** TLS terminates at the ingress; HSTS and security headers set at
-  the edge and in Next.js config.
+- **Transport:** TLS terminates at the ingress; Next.js sets security headers
+  (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
+  Permissions-Policy). Add HSTS at the ingress too so it covers `/api`.
 - **AuthN/AuthZ:** a JWT verification dependency and a `CurrentUser` seam are
   stubbed in `app/core/security.py` and `app/api/v1/deps.py`. Wire them to your
   IdP (Auth0/Clerk/Cognito/your own) — the injection point already exists.
@@ -269,12 +273,15 @@ Full playbook: [`docs/guides/scaling.md`](./docs/guides/scaling.md).
   deploys don't drop requests.
 - **Probes:** readiness gating prevents traffic to pods that can't reach their
   dependencies; liveness restarts wedged pods.
-- **Timeouts & retries:** outbound calls carry timeouts; the HTTP client in the
-  frontend retries idempotent requests with backoff.
+- **Timeouts & retries:** the API's outbound HTTP client
+  (`app/core/http_client.py`) has bounded timeouts, retries idempotent methods
+  with backoff, and a circuit breaker. The browser client surfaces failures as a
+  typed `ApiError` (add retries there if you need them).
 - **Pod Disruption Budgets** keep a minimum number of replicas during node
   drains and upgrades.
-- **Idempotency seam:** mutating endpoints can honor an `Idempotency-Key`
-  (sketched in the example) so client retries don't double-apply.
+- **Background jobs are at-least-once** with a dead-letter queue and an
+  idempotent-handler contract. For HTTP, an `Idempotency-Key` on mutating
+  endpoints (store key→response in Redis) is the recommended next step.
 
 ---
 

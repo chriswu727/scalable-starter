@@ -253,6 +253,41 @@ contract freshness verified; CI green).
 
 API tests 28 → 36. Remaining: Phase 7 (scaffolding / DX) below.
 
+**Phase 7 — Scaffolding / DX + docs honesty: DONE** (tests + `make check`; CI green).
+
+- **Feature scaffolding**: `make feature name=...` stamps every layer from the
+  items template (consistent rename + auto-format) and prints the wiring steps;
+  `make seed` (idempotent example rows) and `make delete-example` (a precise
+  removal checklist).
+- **Reliability seams the docs claimed**: a sanctioned outbound HTTP client
+  (`app/core/http_client.py`: bounded timeouts/pool, idempotent retries +
+  backoff, circuit breaker) and a `get_or_set` cache-aside helper with
+  single-flight stampede protection.
+- **DX**: `lefthook` pre-commit hooks (CI's lint/format on staged files,
+  installed by `make setup`), `SECURITY.md`, and a `.devcontainer` (Node +
+  Python + docker-in-docker).
+- **Frontend tests**: Vitest covers the `api-client` seam (now wired into CI via
+  `pnpm test`, was a no-op); a Playwright e2e example + `make e2e`.
+- **Docs honesty pass**: HSTS is now actually set (next.config) and the doc says
+  where to add it at the ingress; reworded the misattributed frontend-retry /
+  Idempotency-Key / worker-queue-depth-scaling / ingress-rate-limit claims; the
+  worker producer seam and the `ck_` CheckConstraint naming footgun are
+  documented accurately.
+
+API tests 36 → 41, plus 3 web tests.
+
+---
+
+## ✅ All seven phases complete
+
+Every item in the roadmap below has been implemented, verified (`make check` +
+adversarial review + real GitHub CI), and shipped. The themes that follow are the
+original audit, kept for traceability — each is now addressed in the progress log
+above. Two things remain genuinely out of reach in the authoring environment and
+are noted where relevant: a live-cluster `kubectl apply` (no Docker/cluster) and
+the Playwright e2e (needs a running stack) — both are wired and schema/lint-valid,
+just not executed here.
+
 ---
 
 ## Overall assessment
