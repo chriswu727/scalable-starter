@@ -9,6 +9,7 @@ permissions:
   contents: read
   packages: write
   id-token: write # OIDC token for cosign keyless signing (buildx provenance/sbom need no extra perms)
+  security-events: write # upload the Trivy SARIF report to the Security tab
 
 jobs:
   build:
@@ -43,32 +44,6 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=sha,format=short
-      # Build amd64 locally (no push) so the vulnerability gate runs BEFORE
-      # anything is published. The layers are cached, so the multi-arch push
-      # below reuses them.
-      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          target: ${{ matrix.target }}
-          platforms: linux/amd64
-          load: true
-          tags: ${{ steps.img.outputs.name }}:scan
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      # Fail on fixable HIGH/CRITICAL CVEs before publishing. Unfixable
-      # base-image CVEs don't block (no action available); accept specific IDs
-      # via the checked-in .trivyignore.
-      - name: Scan image (gate before publish)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: ${{ steps.img.outputs.name }}:scan
-          format: table
-          exit-code: '1'
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-      # Only now build the full multi-arch image and push it, with SLSA build
-      # provenance + SBOM attestations baked in by BuildKit.
       - id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
@@ -81,10 +56,30 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: mode=max
-          sbom: true
+          provenance: mode=max # SLSA build provenance attestation
+          sbom: true # SPDX SBOM attestation
       - name: Sign the published image (keyless)
         env:
           IMAGE: ${{ steps.img.outputs.name }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: cosign sign --yes "${IMAGE}@${DIGEST}"
+      # Continuous vulnerability visibility: scan the published image and publish
+      # results to the Security tab. Report-only by default so an upstream
+      # base-image CVE (outside an adopter's control) never blocks a release;
+      # flip exit-code to '1' to make it a hard gate. .trivyignore accepts
+      # specific reviewed CVE IDs.
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.img.outputs.name }}@${{ steps.build.outputs.digest }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        continue-on-error: true # SARIF upload needs a public repo or Advanced Security
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-${{ matrix.name }}

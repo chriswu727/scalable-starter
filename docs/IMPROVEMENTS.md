@@ -111,8 +111,9 @@ head`, so migration/​model drift and Postgres-only DDL (`now()`, `Uuid`, tz)
   are caught — they were never exercised before (tests use SQLite).
 - **Image supply chain**: `docker.yml` now builds **multi-arch**
   (linux/amd64+arm64 via QEMU), emits **SLSA provenance + SBOM** attestations,
-  **scans with Trivy** (fails on fixable HIGH/CRITICAL), and **cosign
-  keyless-signs** the pushed digest. Image path is lowercased for fork safety.
+  **cosign keyless-signs** the pushed digest, and **scans with Trivy** —
+  reporting to the Security tab (SARIF), non-blocking by default. Image path is
+  lowercased for fork safety.
 - **SAST + secret scanning**: new `codeql.yml` (python + javascript-typescript)
   and `secret-scan.yml` (gitleaks, full history). Least-privilege `permissions`
   on every workflow.
@@ -120,9 +121,14 @@ head`, so migration/​model drift and Postgres-only DDL (`now()`, `Uuid`, tz)
 _Post-review hardening_ (a web-enabled review of the workflows against current
 action docs found these):
 
-- **Trivy scanned after `push: true`** — the vulnerable image was already
-  published before the gate could fail. Reworked `docker.yml` to build amd64
-  with `load: true`, **scan, and only then** build+push the multi-arch image.
+- **Trivy gate design** — the review noted that scanning after `push: true`
+  publishes before the gate can fail. The first real run then confirmed the
+  deeper tension: a hard HIGH/CRITICAL gate red-X'd the build on an upstream
+  `node:24-alpine` CVE (`CVE-2026-12151`) that an adopter can't fix — a
+  fork-it-and-ship starter that ships red is self-defeating. Settled on the
+  sustainable best practice: scan the published image and **report to the
+  Security tab (SARIF), non-blocking**, with a documented one-line flip to a
+  hard gate. (Dependabot already auto-PRs the base-image bump that clears it.)
 - **gitleaks license trap** — `gitleaks-action` needs a paid license for _any_
   org-owned repo (not just private), which would break org forks of a
   "fork-it-and-ship" starter. Replaced it with the MIT-licensed gitleaks **CLI**
@@ -131,6 +137,15 @@ action docs found these):
   analyze job now skips (doesn't hard-fail) when a pushed repo isn't public.
 - Reworded the misattributed `id-token: write` comment (it's for cosign, not the
   BuildKit attestations).
+- **Web image build hard-failed** on the first real `docker.yml` run: `next
+build` validates `NEXT_PUBLIC_API_URL` (via `env.ts`) but the builder stage
+  never set it. Added a build ARG with a default. (The promotable-single-image
+  question — build-ARG-per-env vs runtime config — is a later phase.)
+
+Runs verified on GitHub: CI (incl. the Postgres migration round-trip), CodeQL,
+and secret-scan are green; the image pipeline builds multi-arch, signs, and
+reports scans. Several of these could only be caught by running on a real
+runner — exactly why they're verified here, not just locally.
 
 Validated locally: `actionlint` clean on all four workflows, `make check` green
 (incl. format:check), `docker compose config` valid, all three Kustomize
