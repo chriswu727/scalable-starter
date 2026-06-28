@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import Field, PostgresDsn, RedisDsn, computed_field, field_validator
+from pydantic import Field, PostgresDsn, RedisDsn, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 Environment = Literal["development", "staging", "production"]
@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
     access_token_expire_minutes: int = 30
     jwt_algorithm: str = "HS256"
+    # Optional JWT audience/issuer validation — set both ends to enable.
+    jwt_audience: str | None = None
+    jwt_issuer: str | None = None
 
     # ---- Logging ----
     log_level: str = "info"
@@ -96,6 +99,27 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [o.strip() for o in value.split(",") if o.strip()]
         return value
+
+    @model_validator(mode="after")
+    def _enforce_production_safety(self) -> Settings:
+        """Fail fast at boot on insecure production configuration.
+
+        A starter that silently ships a default signing key or wildcard CORS in
+        production is a footgun; refuse to start instead.
+        """
+        if self.environment != "production":
+            return self
+        if self.secret_key.startswith("change-me") or len(self.secret_key) < 32:
+            raise ValueError(
+                "SECRET_KEY must be a strong, non-default value in production "
+                "(generate one with `openssl rand -hex 32`)."
+            )
+        if not self.cors_origins or "*" in self.cors_origins:
+            raise ValueError(
+                "CORS_ORIGINS must be an explicit allow-list in production "
+                "(wildcard '*' is not permitted with credentials)."
+            )
+        return self
 
 
 @lru_cache

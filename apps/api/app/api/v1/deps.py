@@ -13,11 +13,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis import Cache
+from app.core.logging import get_logger
 from app.core.security import decode_access_token
 from app.db.session import get_session
 from app.exceptions import RateLimitedError, UnauthorizedError
 from app.repositories.item import ItemRepository
 from app.services.item import ItemService
+
+log = get_logger(__name__)
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -41,12 +44,15 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 async def get_current_subject(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> str:
     """Verify a bearer token and return its subject. Raises 401 if invalid.
 
     Apply with ``Depends(get_current_subject)`` to protect a route. Returns the
-    ``sub`` claim; swap in your real user lookup when you add one.
+    ``sub`` claim; swap in your real user lookup when you add one. The subject is
+    stashed on ``request.state`` so the rate limiter can bucket per authenticated
+    caller rather than per source IP.
     """
     if credentials is None:
         raise UnauthorizedError("Missing bearer token")
@@ -54,7 +60,12 @@ async def get_current_subject(
         payload = decode_access_token(credentials.credentials)
     except Exception as exc:  # normalise all JWT errors to 401
         raise UnauthorizedError("Invalid or expired token") from exc
-    return str(payload.get("sub", ""))
+    subject = payload.get("sub")
+    if not isinstance(subject, str) or not subject:
+        # A validly-signed token with no subject must not authenticate as "".
+        raise UnauthorizedError("Token has no subject")
+    request.state.subject = subject
+    return subject
 
 
 CurrentSubject = Annotated[str, Depends(get_current_subject)]
@@ -68,10 +79,28 @@ def rate_limit(*, limit: int = 60, window_seconds: int = 60) -> params.Depends:
     """
 
     async def _dependency(request: Request, cache: CacheDep) -> None:
-        client = request.client.host if request.client else "anonymous"
-        key = f"ratelimit:{request.url.path}:{client}"
-        count = await cache.incr(key, ttl_seconds=window_seconds)
+        # Client identity comes from request.client.host, which reflects the real
+        # caller only when uvicorn runs with --proxy-headers and a trusted
+        # FORWARDED_ALLOW_IPS; otherwise every caller behind the proxy shares one
+        # bucket. Prefer the authenticated subject when one is present.
+        subject = getattr(request.state, "subject", None)
+        client = subject or (request.client.host if request.client else "anonymous")
+        key = f"ratelimit:{window_seconds}:{request.url.path}:{client}"
+        try:
+            count = await cache.incr(key, ttl_seconds=window_seconds)
+        except Exception:
+            # Fail OPEN: a cache blip must not 500 every protected route.
+            log.warning("rate_limit.cache_unavailable", path=request.url.path)
+            return
         if count > limit:
-            raise RateLimitedError(f"Rate limit exceeded: {limit}/{window_seconds}s")
+            raise RateLimitedError(
+                f"Rate limit exceeded: {limit} requests per {window_seconds}s",
+                extra={
+                    "headers": {
+                        "Retry-After": str(window_seconds),
+                        "X-RateLimit-Limit": str(limit),
+                    }
+                },
+            )
 
     return cast(params.Depends, Depends(_dependency))

@@ -6,7 +6,7 @@ Kubernetes uses these: ``/healthz`` to decide whether to restart a wedged pod,
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response, status
 from sqlalchemy import text
 
 from app.api.v1.deps import CacheDep, SessionDep
@@ -22,8 +22,13 @@ async def healthz() -> dict[str, str]:
 
 
 @router.get("/readyz", summary="Readiness probe")
-async def readyz(session: SessionDep, cache: CacheDep) -> dict[str, object]:
-    """Can the process serve traffic? Verifies database and cache connectivity."""
+async def readyz(session: SessionDep, cache: CacheDep, response: Response) -> dict[str, object]:
+    """Can the process serve traffic? Verifies database and cache connectivity.
+
+    Returns 503 when any dependency is unreachable. Kubernetes reads only the
+    status code, so a 200-with-``not_ready``-body would silently keep routing
+    traffic to a broken pod and let a bad rollout get promoted.
+    """
     checks: dict[str, str] = {}
 
     try:
@@ -39,4 +44,6 @@ async def readyz(session: SessionDep, cache: CacheDep) -> dict[str, object]:
         checks["cache"] = "error"
 
     ready = all(v == "ok" for v in checks.values())
+    if not ready:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {"status": "ready" if ready else "not_ready", "checks": checks}

@@ -49,9 +49,11 @@ class BaseRepository(Generic[ModelT]):
         return instance
 
     async def update(self, instance: ModelT, **values: Any) -> ModelT:
+        # Every key passed is written as-is — including an explicit ``None``, so a
+        # PATCH can clear a nullable field. Callers decide what to send (e.g.
+        # ``payload.model_dump(exclude_unset=True)`` to skip omitted fields).
         for key, value in values.items():
-            if value is not None:
-                setattr(instance, key, value)
+            setattr(instance, key, value)
         await self.session.flush()
         # Refresh to pull server-side onupdate values (e.g. updated_at) before
         # the object is serialized outside the async context.

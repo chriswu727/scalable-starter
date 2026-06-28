@@ -30,7 +30,10 @@ REQUEST_LATENCY = Histogram(
 
 def _route_template(request: Request) -> str:
     route = request.scope.get("route")
-    return getattr(route, "path", request.url.path)
+    path = getattr(route, "path", None)
+    # Never feed the raw URL into a label: an unmatched path (scanner traffic)
+    # would mint unbounded time series. Bucket them under one constant instead.
+    return path if isinstance(path, str) else "__unmatched__"
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):
@@ -38,11 +41,17 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         start = time.perf_counter()
-        response = await call_next(request)
-        path = _route_template(request)
-        REQUEST_LATENCY.labels(request.method, path).observe(time.perf_counter() - start)
-        REQUEST_COUNT.labels(request.method, path, response.status_code).inc()
-        return response
+        status_code = 500  # if call_next raises, the request becomes a 500
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            return response
+        finally:
+            # Record in finally so unhandled 5xx — exactly the errors operators
+            # care about — are never invisible to the RED metrics.
+            path = _route_template(request)
+            REQUEST_LATENCY.labels(request.method, path).observe(time.perf_counter() - start)
+            REQUEST_COUNT.labels(request.method, path, status_code).inc()
 
 
 def metrics_endpoint() -> Response:

@@ -37,9 +37,9 @@ class ItemService:
 
     async def update(self, item_id: uuid.UUID, payload: ItemUpdate) -> ItemModel:
         item = await self.get(item_id)
-        return await self.repository.update(
-            item, name=payload.name, description=payload.description
-        )
+        # exclude_unset: only fields the client actually sent are updated, so an
+        # omitted field is left untouched while an explicit null clears it.
+        return await self.repository.update(item, **payload.model_dump(exclude_unset=True))
 
     async def delete(self, item_id: uuid.UUID) -> None:
         deleted = await self.repository.delete(item_id)

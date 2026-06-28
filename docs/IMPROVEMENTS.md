@@ -44,7 +44,56 @@ run — daemon unavailable in the authoring environment).
   (web lint+typecheck, ruff, mypy, pytest). `next-env.d.ts` added to
   `.gitignore`.
 
-Remaining phases (2–7) below are not yet started.
+**Phase 2 — Reliability/security quick fixes: DONE** (verified by tests +
+`make check`; the diff was then put through an adversarial multi-agent review
+and the confirmed findings fixed — see "post-review hardening" below).
+
+- `/readyz` now returns **503** when DB/cache are unreachable (was always 200,
+  a no-op gate). Added a failing-dependency test.
+- **Production-safety boot guard**: a `model_validator` rejects the default/weak
+  `SECRET_KEY` and wildcard/empty CORS when `environment==production` — fail
+  fast instead of shipping forgeable tokens. Tested.
+- **Auth seam** hardened: `decode_access_token` now requires `exp` (and
+  validates `aud`/`iss` when configured); `get_current_subject` rejects a
+  missing/blank `sub` instead of authenticating as `""`. Tested.
+- **Rate limiter**: fails **open** on a cache blip (was 500-ing every protected
+  route), atomic `INCR`+`EXPIRE NX` (no orphaned-key permanent throttle), window
+  in the key, emits `Retry-After`/`X-RateLimit-Limit`, and prefers the
+  authenticated subject over IP. `--proxy-headers` added to the runtime image +
+  `FORWARDED_ALLOW_IPS` documented so client IPs are real behind the ingress.
+  Tested (429 + Retry-After).
+- **PATCH null semantics**: `BaseRepository.update` writes explicit nulls and
+  `ItemService.update` uses `model_dump(exclude_unset=True)`, so a PATCH can
+  clear a nullable field while omitted fields are untouched. Two tests.
+- **RFC-9457**: `Problem` gained `instance` + `errors`; the validation handler
+  uses `jsonable_encoder` (a custom-validator `ValueError` no longer degrades a
+  422 into a 500); 429 carries `Retry-After`; error bodies use
+  `exclude_none`.
+- **Metrics correctness**: requests are recorded in a `finally` so unhandled
+  5xx are counted (the RED "E" was blind); unmatched paths use a constant
+  `__unmatched__` label (no cardinality bomb); runtime image is `--workers 1`
+  so the in-process Prometheus registry is correct.
+
+_Post-review hardening_ (an adversarial review of the diff surfaced these,
+each verified and fixed):
+
+- **PATCH `{"name": null}` returned 500** (a NOT NULL column nulled via the new
+  PATCH path). `ItemUpdate` now rejects an explicit null `name` with a 422.
+- **`EXPIRE … NX` needs Redis 7.0+** — on Redis 6.x it errored on every
+  increment and the fail-open path silently disabled rate limiting. Switched
+  `RedisCache.incr` to an atomic Lua script that works on 6.x and 7+.
+- **`request.state.subject` was dead code** (nothing set it). `get_current_subject`
+  now stashes the subject so the rate limiter can key per authenticated caller.
+- **JWT `aud` trap**: with `JWT_AUDIENCE` unset, PyJWT rejected any token that
+  *carries* an aud claim (most real IdP tokens). `verify_aud` now tracks whether
+  an audience is configured.
+
+API tests grew 5 → 20, including a `RedisCache` adapter test against a
+Lua-capable fake Redis (so the rate-limiter's Redis path — not just the in-memory
+double — is covered). `make check` fully green; the CI pip path verified on
+py3.13.
+
+Remaining phases (3–7) below are not yet started.
 
 ---
 

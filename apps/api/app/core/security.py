@@ -32,5 +32,23 @@ def create_access_token(
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
-    """Decode and verify a JWT. Raises ``jwt.PyJWTError`` on any failure."""
-    return jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+    """Decode and verify a JWT. Raises ``jwt.PyJWTError`` on any failure.
+
+    ``exp`` is required, so a token minted without an expiry is rejected rather
+    than accepted forever. Audience/issuer are validated when configured.
+    """
+    kwargs: dict[str, Any] = {}
+    if settings.jwt_audience:
+        kwargs["audience"] = settings.jwt_audience
+    if settings.jwt_issuer:
+        kwargs["issuer"] = settings.jwt_issuer
+    # verify_aud must track whether an audience is configured: otherwise PyJWT
+    # rejects every token that *carries* an aud claim (i.e. most real IdP tokens)
+    # when JWT_AUDIENCE is left unset.
+    return jwt.decode(
+        token,
+        settings.secret_key,
+        algorithms=[settings.jwt_algorithm],
+        options={"require": ["exp"], "verify_aud": bool(settings.jwt_audience)},
+        **kwargs,
+    )

@@ -42,5 +42,8 @@ COPY apps/api /app
 RUN chown -R app:app /app
 USER app
 EXPOSE 8000
-# Horizontal scale = more pods. Keep workers modest per pod; the cluster scales out.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# One process per pod: horizontal scale = more pods (the cluster scales out), and
+# a single in-process Prometheus registry keeps /metrics counters correct.
+# --proxy-headers trusts X-Forwarded-* from upstreams in FORWARDED_ALLOW_IPS
+# (set it to the ingress/pod CIDR in production) so client IPs are accurate.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers"]

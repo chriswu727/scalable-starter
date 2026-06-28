@@ -15,6 +15,15 @@ import redis.asyncio as aioredis
 
 from app.core.config import settings
 
+# Atomic "increment, and set the TTL only when the key is first created". A Lua
+# script runs atomically on the server and — unlike `EXPIRE ... NX` — works on
+# Redis 6.x as well as 7+, so the rate limiter behaves correctly on older stores.
+_INCR_EXPIRE_LUA = (
+    "local c = redis.call('INCR', KEYS[1]) "
+    "if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end "
+    "return c"
+)
+
 
 @runtime_checkable
 class Cache(Protocol):
@@ -45,10 +54,11 @@ class RedisCache:
         await self._client.delete(key)
 
     async def incr(self, key: str, *, ttl_seconds: int | None = None) -> int:
-        value = await self._client.incr(key)
-        if value == 1 and ttl_seconds:
-            await self._client.expire(key, ttl_seconds)
-        return int(value)
+        if ttl_seconds is None:
+            return int(await self._client.incr(key))
+        # Atomic INCR + first-time EXPIRE, so a crash between the two ops can't
+        # orphan a key without a TTL (which would be a permanent throttle).
+        return int(await self._client.eval(_INCR_EXPIRE_LUA, 1, key, ttl_seconds))
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -81,9 +91,15 @@ class InMemoryCache:
         self._store.pop(key, None)
 
     async def incr(self, key: str, *, ttl_seconds: int | None = None) -> int:
-        current = 0 if self._expired(key) else int(self._store[key][0])
-        current += 1
-        await self.set(key, str(current), ttl_seconds=ttl_seconds)
+        # Set the expiry only when the window is created, mirroring Redis's
+        # EXPIRE NX, so repeated increments don't slide the window forward.
+        if self._expired(key):
+            expires = time.monotonic() + ttl_seconds if ttl_seconds else None
+            self._store[key] = ("1", expires)
+            return 1
+        value, expires = self._store[key]
+        current = int(value) + 1
+        self._store[key] = (str(current), expires)
         return current
 
     async def close(self) -> None:

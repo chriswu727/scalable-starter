@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from fastapi import Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -24,11 +25,12 @@ log = get_logger(__name__)
 PROBLEM_MEDIA_TYPE = "application/problem+json"
 
 
-def _problem_response(problem: Problem) -> JSONResponse:
+def _problem_response(problem: Problem, *, headers: dict[str, str] | None = None) -> JSONResponse:
     return JSONResponse(
         status_code=problem.status,
-        content=problem.model_dump(),
+        content=problem.model_dump(exclude_none=True),
         media_type=PROBLEM_MEDIA_TYPE,
+        headers=headers,
     )
 
 
@@ -44,9 +46,12 @@ def register_exception_handlers(app: FastAPI) -> None:
             status=exc.status_code,
             detail=exc.detail,
             code=exc.code,
+            instance=request.url.path,
             request_id=_request_id(request),
         )
-        return _problem_response(problem)
+        # Errors may carry response headers (e.g. Retry-After on a 429).
+        headers = exc.extra.get("headers")
+        return _problem_response(problem, headers=headers if isinstance(headers, dict) else None)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(
@@ -54,14 +59,16 @@ def register_exception_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         problem = Problem(
             title="Validation Failed",
-            status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="One or more fields are invalid.",
             code="validation_error",
+            instance=request.url.path,
             request_id=_request_id(request),
+            # jsonable_encoder makes ValueErrors from custom validators safe to
+            # serialize — without it a custom-validator error degrades into a 500.
+            errors=jsonable_encoder(exc.errors()),
         )
-        body = problem.model_dump()
-        body["errors"] = exc.errors()  # field-level detail for clients
-        return JSONResponse(status_code=problem.status, content=body, media_type=PROBLEM_MEDIA_TYPE)
+        return _problem_response(problem)
 
     @app.exception_handler(Exception)
     async def handle_unexpected(request: Request, exc: Exception) -> JSONResponse:
@@ -72,6 +79,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred.",
             code="internal_error",
+            instance=request.url.path,
             request_id=_request_id(request),
         )
         return _problem_response(problem)

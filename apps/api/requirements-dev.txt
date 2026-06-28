@@ -33,6 +33,8 @@ colorama==0.4.6 ; sys_platform == 'win32'
     #   click
     #   pytest
     #   uvicorn
+fakeredis==2.36.2
+    # via app (pyproject.toml)
 fastapi==0.138.1
     # via app (pyproject.toml)
 googleapis-common-protos==1.75.0
@@ -62,6 +64,8 @@ iniconfig==2.3.0
     # via pytest
 librt==0.11.0 ; platform_python_implementation != 'PyPy'
     # via mypy
+lupa==2.8
+    # via fakeredis
 mako==1.3.12
     # via alembic
 markupsafe==3.0.3
@@ -168,11 +172,15 @@ python-dotenv==1.2.2
 pyyaml==6.0.3
     # via uvicorn
 redis==8.0.1
-    # via app (pyproject.toml)
+    # via
+    #   app (pyproject.toml)
+    #   fakeredis
 requests==2.34.2
     # via opentelemetry-exporter-otlp-proto-http
 ruff==0.15.20
     # via app (pyproject.toml)
+sortedcontainers==2.4.0
+    # via fakeredis
 sqlalchemy==2.0.51
     # via
     #   app (pyproject.toml)

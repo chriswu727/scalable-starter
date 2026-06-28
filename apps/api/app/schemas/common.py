@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -26,4 +26,8 @@ class Problem(BaseModel):
     status: int
     detail: str | None = None
     code: str = Field(description="Stable machine-readable error code")
+    instance: str | None = Field(default=None, description="URI of the specific occurrence")
     request_id: str | None = None
+    errors: list[dict[str, Any]] | None = Field(
+        default=None, description="Field-level validation errors, when applicable"
+    )
