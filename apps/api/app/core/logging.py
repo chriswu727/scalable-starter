@@ -13,9 +13,21 @@ import sys
 from typing import cast
 
 import structlog
+from opentelemetry import trace
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from app.core.config import settings
+
+
+def _add_trace_correlation(
+    _logger: object, _method: str, event_dict: structlog.types.EventDict
+) -> structlog.types.EventDict:
+    """Bind the active trace/span id so a log line can be pivoted to its trace."""
+    ctx = trace.get_current_span().get_span_context()
+    if ctx.is_valid:
+        event_dict["trace_id"] = format(ctx.trace_id, "032x")
+        event_dict["span_id"] = format(ctx.span_id, "016x")
+    return event_dict
 
 
 def configure_logging() -> None:
@@ -24,6 +36,7 @@ def configure_logging() -> None:
 
     shared_processors: list[structlog.types.Processor] = [
         structlog.contextvars.merge_contextvars,
+        _add_trace_correlation,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         structlog.processors.StackInfoRenderer(),

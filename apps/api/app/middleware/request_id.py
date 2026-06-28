@@ -12,6 +12,7 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 
+from opentelemetry import trace
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -29,6 +30,9 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         request_id = request.headers.get(REQUEST_ID_HEADER) or uuid.uuid4().hex
         bind_request_id(request_id)
         request.state.request_id = request_id
+        span = trace.get_current_span()
+        if span.is_recording():
+            span.set_attribute("request.id", request_id)
 
         start = time.perf_counter()
         try:

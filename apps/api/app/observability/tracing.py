@@ -26,6 +26,8 @@ def setup_tracing(app: FastAPI) -> None:
     from opentelemetry import trace
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.instrumentation.redis import RedisInstrumentor
+    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -39,4 +41,8 @@ def setup_tracing(app: FastAPI) -> None:
     )
     trace.set_tracer_provider(provider)
     FastAPIInstrumentor.instrument_app(app)
+    # Global instrumentation: patches the SQLAlchemy Engine class and the redis
+    # client, so the engine/clients created later in lifespan are covered.
+    SQLAlchemyInstrumentor().instrument()
+    RedisInstrumentor().instrument()
     log.info("tracing.enabled", endpoint=settings.otel_exporter_otlp_endpoint)

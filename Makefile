@@ -87,6 +87,15 @@ test: ## Run all tests
 .PHONY: check
 check: lint typecheck test ## Run the full quality gate (what CI runs)
 
+# ---------- Load / smoke testing ----------
+.PHONY: smoke
+smoke: ## k6 smoke test against BASE_URL (default localhost:8000; requires k6)
+	k6 run scripts/k6/smoke.js
+
+.PHONY: load
+load: ## Heavier k6 load test (50 VUs, 2m)
+	k6 run --vus 50 --duration 2m scripts/k6/smoke.js
+
 # ---------- Kubernetes ----------
 .PHONY: k8s-dev
 k8s-dev: ## Render the dev overlay (kustomize) to stdout

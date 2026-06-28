@@ -204,7 +204,29 @@ immutable`) gotcha, the k3s/Traefik + NetworkPolicy caveat, that ALB/GKE
 Note: a real cluster apply still isn't runtime-verified here (no Docker/cluster
 in the authoring env), so pod startup is reasoned-and-fixed, not observed.
 
-Remaining phases (5–7) below are not yet started.
+**Phase 5 — Worker reliability + observability depth: DONE** (code verified by
+tests + `make check`; k8s by kubeconform; CI green each push).
+
+- **Reliable worker queue** (was at-most-once with silent loss): `BLMOVE` to a
+  per-worker processing list, ack (`LREM`) only after the handler succeeds,
+  retry up to `MAX_ATTEMPTS` then dead-letter to `jobs:dead`, reconnect/backoff
+  on Redis blips, and orphan recovery on restart. `enqueue` reuses a pooled
+  client. Handlers documented as must-be-idempotent. 6 fakeredis tests.
+- **Worker observability + k8s**: Prometheus metrics (`worker_jobs_processed_total`,
+  duration, `worker_queue_depth`) on `:9100`; an exec **liveness probe** on a
+  heartbeat file (restarts a wedged loop); worker **PDB** + topology spread; a
+  **KEDA** queue-depth ScaledObject template; a NetworkPolicy allow for scraping.
+- **Cache client** bounded (socket/connect timeouts, health checks,
+  max_connections); the worker's blocking consumer stays exempt.
+- **Observability depth**: logs now carry the active `trace_id`/`span_id` and the
+  request id is set as a span attribute (logs↔traces pivot); **web-tier OTel**
+  via `@vercel/otel` `instrumentation.ts` (server fetches propagate
+  `traceparent`); `setup_tracing` now actually instruments SQLAlchemy + Redis
+  (the docs already claimed it). A `prometheus-rules.example.yaml` ships a 99.9%
+  SLO with a multi-window burn-rate alert, plus a `k6` smoke/load script and
+  `make smoke` / `make load`.
+
+API tests 20 → 28. Remaining phases (6–7) below are not yet started.
 
 ---
 

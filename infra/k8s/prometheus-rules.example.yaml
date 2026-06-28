@@ -1,0 +1,56 @@
+# -----------------------------------------------------------------------------
+# TEMPLATE — not wired into any kustomization. Requires the Prometheus Operator
+# (kube-prometheus-stack). A 99.9% availability SLO on the API's RED metrics
+# (http_requests_total / http_request_duration_seconds from app/observability),
+# with a multi-window multi-burn-rate alert (Google SRE Workbook style) so you
+# page on fast burn and ticket on slow burn instead of on every blip.
+# -----------------------------------------------------------------------------
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: api-slo
+  labels:
+    release: kube-prometheus-stack # match your Prometheus ruleSelector
+spec:
+  groups:
+    - name: api-slo.rules
+      rules:
+        # Error ratio over several windows (the SLI: fraction of 5xx responses).
+        - record: job:api_request_errors:ratio_rate5m
+          expr: |
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(http_requests_total[5m]))
+        - record: job:api_request_errors:ratio_rate1h
+          expr: |
+            sum(rate(http_requests_total{status=~"5.."}[1h]))
+            / sum(rate(http_requests_total[1h]))
+        - record: job:api_request_errors:ratio_rate30m
+          expr: |
+            sum(rate(http_requests_total{status=~"5.."}[30m]))
+            / sum(rate(http_requests_total[30m]))
+        - record: job:api_request_errors:ratio_rate6h
+          expr: |
+            sum(rate(http_requests_total{status=~"5.."}[6h]))
+            / sum(rate(http_requests_total[6h]))
+    - name: api-slo.alerts
+      rules:
+        # Fast burn: 14.4x the 0.1% budget over 1h AND 5m → page.
+        - alert: ApiErrorBudgetFastBurn
+          expr: |
+            job:api_request_errors:ratio_rate1h > (14.4 * 0.001)
+            and on() job:api_request_errors:ratio_rate5m > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: page
+          annotations:
+            summary: 'API burning error budget fast (>14.4x) — 99.9% SLO at risk'
+        # Slow burn: 6x over 6h AND 30m → ticket.
+        - alert: ApiErrorBudgetSlowBurn
+          expr: |
+            job:api_request_errors:ratio_rate6h > (6 * 0.001)
+            and on() job:api_request_errors:ratio_rate30m > (6 * 0.001)
+          for: 15m
+          labels:
+            severity: ticket
+          annotations:
+            summary: 'API burning error budget slowly (>6x) over 6h'
