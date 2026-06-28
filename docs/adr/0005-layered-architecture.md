@@ -10,9 +10,9 @@ that stays navigable from 1 to 100+ features.
 
 ## Decision
 
-Layer the backend: **transport → service → repository → domain**, with
-dependencies pointing inward only. Schemas (Pydantic) are the wire contract;
-the domain is framework-free.
+Layer the backend: **transport → service → repository → data**, with
+dependencies pointing inward only. Pydantic schemas are the wire contract and
+the services hold the business rules; nothing in the core knows about HTTP.
 
 ## Consequences
 

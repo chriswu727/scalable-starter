@@ -126,11 +126,8 @@ flowchart LR
     HTTP["API layer<br/>routers, deps, middleware"]
     SVC["Service layer<br/>use-cases / business rules"]
     REPO["Repository layer<br/>data-access interfaces"]
-    DOM["Domain<br/>entities (pure)"]
     DB[("DB / Redis<br/>adapters")]
     HTTP --> SVC --> REPO --> DB
-    SVC --> DOM
-    REPO --> DOM
 ```
 
 Full request lifecycle, scaling model, and failure handling live in
@@ -153,9 +150,8 @@ scalable-starter/
 │           ├── api/v1/       # routers + dependencies (transport)
 │           ├── services/     # use-cases (business rules)  <-- your logic
 │           ├── repositories/ # data-access interfaces + impls
-│           ├── domain/       # pure entities
 │           ├── schemas/      # Pydantic DTOs (the API contract)
-│           ├── db/           # async engine, session, base
+│           ├── db/           # async engine, session, models
 │           ├── middleware/   # request-id, timing, error handling
 │           ├── observability/# tracing + metrics
 │           └── workers/      # background job consumer skeleton
@@ -203,7 +199,8 @@ The skeleton's whole point is that adding a feature is mechanical. To add a
 `projects` resource you touch one file per layer — the example `items`
 feature is your copy-paste template:
 
-1. **Domain** — `app/domain/project.py`: a plain entity, no framework imports.
+1. **Model** — `app/db/models/project.py`, exported from `models/__init__.py` so
+   Alembic sees it.
 2. **Schema** — `app/schemas/project.py`: Pydantic `ProjectCreate` / `ProjectRead`.
 3. **Repository** — `app/repositories/project.py`: subclass the generic async repo.
 4. **Service** — `app/services/project.py`: your business rules.

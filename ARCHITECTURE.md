@@ -29,8 +29,8 @@ codebase scalable as it grows.
    state. All state lives in Postgres/Redis. This is the single most important
    property for horizontal scaling.
 3. **Dependencies point inward.** Transport depends on services, services on
-   repositories, repositories on the domain. The domain depends on nothing.
-   You can read any layer without understanding the one above it.
+   repositories, repositories on the data layer. Nothing in the core knows about
+   HTTP. You can read any layer without understanding the one above it.
 4. **The contract is explicit.** Pydantic schemas and the generated OpenAPI
    spec are the source of truth between frontend and backend.
 5. **Twelve-factor.** Config from the environment, logs to stdout, processes
@@ -74,14 +74,13 @@ is managed deliberately.
 The backend is a layered / hexagonal design. Each layer has one job and may only
 call the layer directly beneath it.
 
-| Layer          | Directory           | Responsibility                                          | May import           |
-| -------------- | ------------------- | ------------------------------------------------------- | -------------------- |
-| **Transport**  | `app/api/`          | HTTP routing, request/response, auth deps, status codes | services, schemas    |
-| **Service**    | `app/services/`     | Use-cases, orchestration, business rules, transactions  | repositories, domain |
-| **Repository** | `app/repositories/` | Data access; hides SQL/Redis behind an interface        | domain, db           |
-| **Domain**     | `app/domain/`       | Pure entities and value objects, no framework           | nothing              |
-| **Schema**     | `app/schemas/`      | Pydantic DTOs — the wire contract                       | domain (for mapping) |
-| **Core**       | `app/core/`         | Config, logging, security primitives, lifespan          | nothing app-specific |
+| Layer          | Directory           | Responsibility                                          | May import               |
+| -------------- | ------------------- | ------------------------------------------------------- | ------------------------ |
+| **Transport**  | `app/api/`          | HTTP routing, request/response, auth deps, status codes | services, schemas        |
+| **Service**    | `app/services/`     | Use-cases, orchestration, business rules, transactions  | repositories, schemas    |
+| **Repository** | `app/repositories/` | Data access; hides SQL/Redis behind an interface        | db                       |
+| **Schema**     | `app/schemas/`      | Pydantic DTOs — the wire contract                       | models (from_attributes) |
+| **Core**       | `app/core/`         | Config, logging, security primitives, lifespan          | nothing app-specific     |
 
 **The dependency rule:** an arrow may only point downward. A router must never
 touch the database directly; a repository must never import FastAPI. If you find
@@ -117,7 +116,7 @@ sequenceDiagram
     S->>Repo: fetch/persist (within a tx)
     Repo->>DB: async SQL
     DB-->>Repo: rows
-    Repo-->>S: domain entities
+    Repo-->>S: ORM models
     S-->>R: result
     R->>R: serialize via response schema
     R-->>MW: response
