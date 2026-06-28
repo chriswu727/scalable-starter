@@ -1,18 +1,19 @@
 /**
- * Shared API contract types — the single source of truth between frontend and
- * backend. Hand-written here for the example resource; for the full surface,
- * run `pnpm --filter @repo/api-contract generate` to codegen `generated.ts`
- * directly from the live OpenAPI spec the FastAPI backend serves at
- * `/openapi.json`, then re-export from here.
+ * Shared API contract between frontend and backend.
+ *
+ * `generated.ts` is codegen'd from the backend's OpenAPI spec (`make contract`),
+ * so resource shapes can't silently drift — CI regenerates and `git diff`s it.
+ * The aliases below give ergonomic names; `Page<T>` stays a hand-written generic
+ * because FastAPI emits a concrete `Page_ItemRead_` per resource, and `Problem`
+ * is rendered by middleware so it isn't in the route-level OpenAPI.
  */
+import type { components } from './generated';
 
-export interface Item {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-}
+export type { components, paths } from './generated';
+
+export type Item = components['schemas']['ItemRead'];
+export type ItemCreate = components['schemas']['ItemCreate'];
+export type ItemUpdate = components['schemas']['ItemUpdate'];
 
 export interface Page<T> {
   items: T[];
@@ -28,5 +29,7 @@ export interface Problem {
   status: number;
   detail: string | null;
   code: string;
+  instance?: string | null;
   request_id: string | null;
+  errors?: Array<Record<string, unknown>> | null;
 }

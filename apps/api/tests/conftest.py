@@ -14,7 +14,7 @@ from sqlalchemy.pool import StaticPool
 import app.db.models as _models  # noqa: F401  (register models on Base.metadata)
 from app.cache.redis import InMemoryCache
 from app.db.base import Base
-from app.db.session import get_session
+from app.db.session import get_read_session, get_session
 from app.main import app
 
 
@@ -45,6 +45,7 @@ async def client(engine: AsyncEngine) -> AsyncIterator[AsyncClient]:
                 raise
 
     app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_read_session] = override_get_session
     app.state.cache = InMemoryCache()
 
     transport = ASGITransport(app=app)

@@ -21,6 +21,12 @@ setup: ## Install all dependencies (JS + Python) and copy env
 		&& pip install -r requirements-dev.txt && pip install --no-deps -e .
 	@echo "Setup complete. Run 'make up' to start the stack."
 
+.PHONY: contract
+contract: ## Regenerate the API contract (OpenAPI spec + TS types) after API changes
+	cd apps/api && . .venv/bin/activate \
+		&& python -c "import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))" > openapi.json
+	pnpm --filter @repo/api-contract generate
+
 .PHONY: lock
 lock: ## Regenerate dependency lockfiles (pnpm + Python) after changing manifests
 	pnpm install --lockfile-only

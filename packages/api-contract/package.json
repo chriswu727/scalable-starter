@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "generate": "openapi-typescript http://localhost:8000/openapi.json -o ./src/generated.ts"
+    "generate": "openapi-typescript ../../apps/api/openapi.json -o ./src/generated.ts"
   },
   "devDependencies": {
     "openapi-typescript": "^7.4.0"

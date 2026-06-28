@@ -4,3 +4,4 @@
 **/coverage
 apps/api
 pnpm-lock.yaml
+packages/api-contract/src/generated.ts

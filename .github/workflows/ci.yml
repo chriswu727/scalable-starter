@@ -26,6 +26,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The generated contract types must match the committed OpenAPI spec.
+      - name: API contract types are up to date
+        run: |
+          pnpm --filter @repo/api-contract generate
+          git diff --exit-code packages/api-contract/src/generated.ts
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
@@ -75,6 +80,11 @@ jobs:
       - run: ruff format --check .
       - run: mypy app
       - run: pytest --maxfail=1 --cov=app --cov-fail-under=70
+      # The committed OpenAPI spec must match what the app actually serves.
+      - name: OpenAPI spec is up to date
+        run: |
+          python -c "import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))" > openapi.json
+          git diff --exit-code openapi.json
       # The example tests run on SQLite for speed; this exercises the real
       # migrations against Postgres and proves models and migrations agree.
       - name: Migrations apply, round-trip, and match models (Postgres)

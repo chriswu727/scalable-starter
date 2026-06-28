@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.cache.redis import Cache
 from app.core.logging import get_logger
 from app.core.security import decode_access_token
-from app.db.session import get_session
+from app.db.session import get_read_session, get_session
 from app.exceptions import RateLimitedError, UnauthorizedError
 from app.repositories.item import ItemRepository
 from app.services.item import ItemService
@@ -23,6 +23,7 @@ from app.services.item import ItemService
 log = get_logger(__name__)
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
+ReadSessionDep = Annotated[AsyncSession, Depends(get_read_session)]
 
 
 def get_cache(request: Request) -> Cache:
@@ -36,7 +37,13 @@ def get_item_service(session: SessionDep) -> ItemService:
     return ItemService(ItemRepository(session))
 
 
+def get_item_read_service(session: ReadSessionDep) -> ItemService:
+    """Same service, but reads go to the replica session (use on GET routes)."""
+    return ItemService(ItemRepository(session))
+
+
 ItemServiceDep = Annotated[ItemService, Depends(get_item_service)]
+ReadItemServiceDep = Annotated[ItemService, Depends(get_item_read_service)]
 
 
 # --- Auth seam (no user store yet — wire to your IdP) -----------------------

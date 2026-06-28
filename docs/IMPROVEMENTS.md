@@ -226,7 +226,32 @@ tests + `make check`; k8s by kubeconform; CI green each push).
   SLO with a multi-window burn-rate alert, plus a `k6` smoke/load script and
   `make smoke` / `make load`.
 
-API tests 20 → 28. Remaining phases (6–7) below are not yet started.
+API tests 20 → 28. **Phase 6 — Architecture integrity & contract: DONE** (tests + `make check`;
+contract freshness verified; CI green).
+
+- **DB-enforced uniqueness**: `items.name` is `UNIQUE` (model + migration); the
+  service keeps the friendly pre-check but also maps `IntegrityError` → 409, so
+  two concurrent replicas can't both insert the same name (the pre-check is racy).
+- **Layered-design payoff demonstrated**: service-layer unit tests against a
+  fake repository (no DB/HTTP) + negative integration tests (404 on
+  update/delete of a missing id, pagination-bound 422s). `pytest-cov` wired with
+  a CI floor (`--cov-fail-under=70`, currently 76%) and `make cov`.
+- **Domain layer resolved**: the unused `app/domain/` pure-entity package was
+  cargo-cult DDD for a thin CRUD seam, so it was **deleted** and the docs
+  (ARCHITECTURE, README, ADR 0005, the feature guide) made honest about the
+  actual transport→service→repository→data layering (the README add-a-feature
+  list also regained its missing ORM-model step).
+- **Read/write split is real**: a `get_read_session` dependency serves a replica
+  when `DATABASE_READ_URL` is set (primary otherwise); GET routes use it, so the
+  scalability knob the docs advertised actually works. Dropped the dead
+  `get_engine` helper.
+- **Anti-drift contract**: `apps/api/openapi.json` is dumped from the app and
+  `packages/api-contract/src/generated.ts` is codegen'd from it
+  (`make contract`); resource types are sourced from the generated file. CI now
+  diff-gates **both** (the spec must match the app, the types must match the
+  spec), so the "frontend can't silently drift" claim finally holds.
+
+API tests 28 → 36. Remaining: Phase 7 (scaffolding / DX) below.
 
 ---
 

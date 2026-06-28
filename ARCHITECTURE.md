@@ -143,8 +143,10 @@ shape.
   A generic `BaseRepository[Entity]` provides `get`, `list`, `create`, `update`,
   `delete`; concrete repos add query methods. This keeps SQL in one place and
   makes services trivially unit-testable with a fake repo.
-- **Read/write split ready.** The engine factory accepts a separate read DSN;
-  point reads at a replica when you need to. Nothing in the service layer changes.
+- **Read/write split.** Read endpoints depend on `get_read_session`, which
+  serves a replica when `DATABASE_READ_URL` is set and the primary otherwise.
+  Set the env var to offload reads — the service and repository code is identical
+  for reads and writes.
 
 ```mermaid
 flowchart LR
