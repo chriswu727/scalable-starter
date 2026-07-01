@@ -1,0 +1,22 @@
+---
+description: System-design conventions for this scalable-starter-based project
+alwaysApply: true
+---
+
+Follow the full engineering conventions in `AGENTS.md` at the repo root. Core rules:
+
+- **Layered architecture:** transport (routes) → service → repository → data.
+  Routers stay thin; business logic goes in services; SQL lives only in
+  repositories (never import FastAPI there).
+- **Stateless compute:** no durable in-process state — all state in Postgres/Redis.
+  Scale horizontally. Heavy/bursty work → the worker tier via `enqueue()` (handlers
+  must be idempotent). Hot reads → read replica (`get_read_session`) + `get_or_set`
+  cache-aside.
+- **Config via `settings`** only (never `os.environ`); **schema via Alembic**
+  migrations (never `create_all`, and name CheckConstraints).
+- Errors as an `AppError` subclass → RFC-9457; outbound HTTP via the shared
+  `HttpClient`; structured logs via `get_logger()` (never `print()`).
+- **Add a resource** with `make feature name=<singular>`, then wire
+  deps/model/router, then `make migration` + `make contract`. Frontend types are
+  generated from OpenAPI — run `make contract`, never hand-edit `generated.ts`.
+- `make check` must be green before committing.
