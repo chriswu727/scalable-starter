@@ -9,14 +9,26 @@ Fork it, delete the example feature, and ship _your_ product on day one
 instead of spending the first month wiring config, logging, auth scaffolding,
 migrations, containers, CI, and Kubernetes manifests.
 
-[Quickstart](#-quickstart-2-commands) ·
-[Architecture](#-architecture) ·
-[Add a feature](#-add-a-feature-in-5-minutes) ·
-[Deploy](#-deploy) ·
+[![CI](https://github.com/chriswu727/scalable-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/chriswu727/scalable-starter/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/chriswu727/scalable-starter/actions/workflows/codeql.yml/badge.svg)](https://github.com/chriswu727/scalable-starter/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+
+[Quickstart](#quickstart-2-commands) ·
+[Architecture](#architecture) ·
+[Add a feature](#add-a-feature-in-5-minutes) ·
+[Deploy](#deploy) ·
 [ARCHITECTURE.md](./ARCHITECTURE.md) · [docs/](./docs)
 
-`Next.js 16` · `React 19` · `TypeScript 5` · `FastAPI` · `Python 3.13` ·
-`PostgreSQL` · `Redis` · `Docker` · `Kubernetes` · `MIT`
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)
 
 </div>
 
