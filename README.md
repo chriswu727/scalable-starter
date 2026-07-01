@@ -171,7 +171,7 @@ scalable-starter/
 ├── infra/
 │   ├── docker/               # multi-stage Dockerfiles
 │   └── k8s/                  # kustomize: base/ + overlays/{dev,staging,prod}
-├── docs/                     # architecture, guides, ADRs, diagrams
+├── docs/                     # guides, ADRs, improvement log
 ├── .github/workflows/        # CI/CD
 ├── docker-compose.yml        # local dev stack
 ├── Makefile                  # every command you need (`make help`)
