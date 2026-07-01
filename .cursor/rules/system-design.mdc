@@ -3,7 +3,14 @@ description: System-design conventions for this scalable-starter-based project
 alwaysApply: true
 ---
 
-Follow the full engineering conventions in `AGENTS.md` at the repo root. Core rules:
+Follow the full engineering conventions in `AGENTS.md` at the repo root.
+
+**Working principles:** understand the code and find the right place before
+changing it; **no hardcoding** (values via `settings`/env, never inline); pick the
+best/simplest solution, not the first; keep changes minimal and finished; verify
+it works and report honestly; never commit secrets.
+
+Core system-design rules:
 
 - **Layered architecture:** transport (routes) → service → repository → data.
   Routers stay thin; business logic goes in services; SQL lives only in

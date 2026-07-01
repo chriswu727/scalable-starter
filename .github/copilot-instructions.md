@@ -3,6 +3,11 @@
 This repo follows the conventions in [AGENTS.md](../AGENTS.md) — read it and keep
 changes on-pattern.
 
+**Working principles:** understand the code and find the right place before
+changing it; **no hardcoding** (values via `settings`/env, never inline); pick the
+best, simplest solution; keep the diff minimal and finished; verify it works;
+report honestly; never commit secrets.
+
 - **Layered architecture:** transport (routes) → service → repository → data.
   Routers are thin; business logic lives in services; SQL lives only in
   repositories (never import FastAPI there).

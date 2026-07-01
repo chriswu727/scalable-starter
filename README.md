@@ -89,6 +89,32 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full design rationale and
 
 ---
 
+## AI agents follow _your_ rules, not their defaults
+
+Most code in a fork like this won't be typed by you — it'll be written by Claude,
+Cursor, Copilot, or whatever agent comes next. So this starter keeps the rules
+**in the repo**, machine-readable, and every fork inherits them: any agent that
+opens your code is told how to work here _before_ it writes a line.
+
+That's not only the system design (stateless, layered, migration-owned schema) —
+it's a full **code of conduct**: understand the code and find the right place
+before changing it, **no hardcoding**, find the best solution rather than the
+first, keep changes minimal and finished, verify before claiming done, and report
+honestly.
+
+| File                                                                                                         | Read by                                                           |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| [`AGENTS.md`](./AGENTS.md)                                                                                   | the cross-tool standard — Claude, Cursor, Codex, Gemini CLI, …    |
+| [`CLAUDE.md`](./CLAUDE.md)                                                                                   | Claude Code (auto-loaded)                                         |
+| [`.cursor/rules/`](./.cursor/rules) · [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) | Cursor · GitHub Copilot                                           |
+| [`.claude/skills/add-feature/`](./.claude/skills/add-feature)                                                | an invokable skill for the highest-drift task (adding a resource) |
+
+And it has teeth: the automated gates (`make check` + CI + branch protection —
+lint, types, tests, formatting, contract sync) reject a whole class of drift
+before it can merge, so the conventions are more than suggestions.
+
+---
+
 ## Architecture
 
 ```mermaid

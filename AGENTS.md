@@ -9,6 +9,38 @@ Read this before writing code.
 If a change seems to need a brand-new pattern, it almost always belongs in an
 existing layer instead.
 
+## Working principles (how to make any change here)
+
+These apply to every change — from a one-line fix to a new subsystem. The
+system-design rules below tell you _where_ code goes; these tell you _how_ to work.
+
+1. **Understand before you change.** Read the surrounding code and its
+   conventions first, and find where the change actually belongs, before writing
+   a line. Code bolted onto the wrong place is a bug waiting to happen.
+2. **No hardcoding — ever.** No magic values, URLs, ports, paths, timeouts, or
+   credentials inline. Anything that varies by environment goes through
+   `settings`/env; repeated literals become named constants. If you're typing a
+   literal that has meaning, ask where it should be defined instead.
+3. **Find the best solution, not the first.** Prefer the simplest correct
+   approach; reuse existing helpers and seams; remove duplication rather than add
+   it. When two approaches work, pick the one a future reader will thank you for.
+4. **Minimal, focused changes.** The smallest diff that solves the problem — no
+   gold-plating, no unrelated refactors riding along. Match the existing file's
+   style, naming, and idioms so the change is invisible in review.
+5. **Leave it finished.** No dead code, no stray `TODO`s, no commented-out
+   blocks, no half-wired paths. If it's worth starting, finish it.
+6. **Verify it actually works.** Run the tests / the app / the command and read
+   the output before calling anything done. New behavior ships with a test.
+7. **Report honestly.** If a check fails, say so with the output. Never claim
+   green when it's red, and never simplify away a failure to look finished.
+8. **Push back when something's wrong.** If a request rests on a wrong premise,
+   or you spot an adjacent bug, say so — a good contributor is a collaborator,
+   not just an executor.
+9. **Comment the _why_, not the _what_.** Only comment non-obvious intent,
+   constraints, or gotchas; well-named code explains itself.
+10. **Never commit secrets.** No credentials, tokens, or private data in code,
+    config, or git history.
+
 ## Non-negotiable invariants (these are what keep it scalable + distributed)
 
 1. **Stateless compute.** Services and request handlers hold NO durable,
