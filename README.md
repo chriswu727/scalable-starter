@@ -109,9 +109,13 @@ honestly.
 | [`.cursor/rules/`](./.cursor/rules) · [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) | Cursor · GitHub Copilot                                           |
 | [`.claude/skills/add-feature/`](./.claude/skills/add-feature)                                                | an invokable skill for the highest-drift task (adding a resource) |
 
-And it has teeth: the automated gates (`make check` + CI + branch protection —
-lint, types, tests, formatting, contract sync) reject a whole class of drift
-before it can merge, so the conventions are more than suggestions.
+These are **guidance, not gates** — on purpose. When you fork this repo they come
+with it, so every agent working in _your_ codebase reads and follows them by
+default, and a reviewer (human or AI) can cite them to raise concerns at review
+time. They never hard-block: your product might genuinely need to break a rule,
+and that's your call — just write it down (an ADR in `docs/adr/`). The only things
+that _must_ pass are the ordinary quality gates you already run — `make check`:
+lint, types, tests, formatting, and contract sync.
 
 ---
 

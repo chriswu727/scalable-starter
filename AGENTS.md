@@ -13,6 +13,10 @@ existing layer instead.
 
 These apply to every change — from a one-line fix to a new subsystem. The
 system-design rules below tell you _where_ code goes; these tell you _how_ to work.
+They're firm defaults, not absolute laws: deviate when your case genuinely needs
+it, but make the reason explicit — a code comment, the PR description, or (for
+anything architectural) an ADR in `docs/adr/`. The point is that no rule is
+broken _silently_ or by accident.
 
 1. **Understand before you change.** Read the surrounding code and its
    conventions first, and find where the change actually belongs, before writing
