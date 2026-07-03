@@ -37,7 +37,7 @@ coverage==7.14.3
     # via pytest-cov
 fakeredis==2.36.2
     # via app (pyproject.toml)
-fastapi==0.138.1
+fastapi==0.139.0
     # via app (pyproject.toml)
 googleapis-common-protos==1.75.0
     # via
