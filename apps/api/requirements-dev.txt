@@ -33,7 +33,7 @@ colorama==0.4.6 ; sys_platform == 'win32'
     #   click
     #   pytest
     #   uvicorn
-coverage==7.14.3
+coverage==7.15.0
     # via pytest-cov
 fakeredis==2.36.2
     # via app (pyproject.toml)
