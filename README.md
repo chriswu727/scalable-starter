@@ -2,12 +2,11 @@
 
 # Scalable Starter
 
-**A production-grade, platform-agnostic full-stack skeleton.**
-Next.js + FastAPI · built to scale on Kubernetes · **zero business logic**.
+**A full-stack starter: Next.js + FastAPI with Docker, CI and Kubernetes manifests.**
+Auth scaffolding, migrations and observability · **zero business logic**.
 
-Fork it, delete the example feature, and ship _your_ product on day one
-instead of spending the first month wiring config, logging, auth scaffolding,
-migrations, containers, CI, and Kubernetes manifests.
+Fork it, delete the example feature, and start from working config, logging,
+auth scaffolding, migrations, containers, CI and Kubernetes manifests.
 
 [![CI](https://github.com/chriswu727/scalable-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/chriswu727/scalable-starter/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/chriswu727/scalable-starter/actions/workflows/codeql.yml/badge.svg)](https://github.com/chriswu727/scalable-starter/actions/workflows/codeql.yml)
@@ -36,8 +35,8 @@ migrations, containers, CI, and Kubernetes manifests.
 
 ## Why this exists
 
-Every new product starts with the same three weeks of undifferentiated plumbing.
-This repo is that plumbing, done once and done well, so you never write it again.
+New products often need the same infrastructure setup.
+This repo provides that plumbing so new projects can start from it.
 
 It is deliberately **empty of features**. There is exactly one trivial example
 endpoint (`/api/v1/items`) wired end-to-end — frontend to API to service to
@@ -46,19 +45,18 @@ skeleton still stands.
 
 What you get instead of features:
 
-- **A real architecture, not a single file that grows into a swamp.** Clear
-  layers (transport, service, repository, data) with dependency rules that
-  keep a 200-file codebase as navigable as a 20-file one.
-- **Horizontal scalability baked in.** Stateless services, externalized
-  session/cache, health/readiness probes, graceful shutdown, and a Kubernetes
-  HPA so the answer to "we got traffic" is "it already scaled."
+- **Layered architecture.** Transport, service, repository and data layers
+  with explicit dependency rules.
+- **Horizontal scaling configuration.** Stateless services, externalized
+  session/cache, health/readiness probes and graceful shutdown. HPA manifests
+  are included; tune and load-test them for your workload.
 - **Platform-agnostic.** Run it with `docker compose up` on a laptop, or
   `kubectl apply -k` on any conformant cluster (EKS, GKE, AKS, k3s, kind). No
   managed-service lock-in is assumed.
 - **Opinionated defaults, swappable parts.** Postgres + Redis today; the
   repository and cache interfaces mean you can swap them without touching
   business code.
-- **The boring, critical stuff is finished:** typed config, structured logging
+- **Included infrastructure:** typed config, structured logging
   with request-ID correlation, RFC-9457 error responses, CORS, rate-limit hook,
   OpenTelemetry tracing, Prometheus metrics, migrations, tests, multi-stage
   non-root Docker images, and CI that runs the same checks you run locally.
